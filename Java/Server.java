@@ -1,22 +1,28 @@
 import java.net.*;
+import java.util.ArrayList;
 import java.io.*;
 
 class Server {
+    private int tcpPort;
+    private int udpPort;
+    private ArrayList<Integer> adjPort;
+    private int adjStationNum;
+    String sName;
 
-	public static void main(String args[]) {
-		int myport = 1234; // assume a fixed, known port
-		ServerSocket sock;
-		Socket newconn;
-		try { // attempt to construct and instantiate a ServerSocket
+    public Server(String name, int tcp, int udp) {
+        sName = name;
+        tcpPort = tcp;
+        udpPort = udp;
+        adjPort = new ArrayList<>();
+    }
 
-			sock = new ServerSocket(myport);
-			System.out.println("Now listening on port " + myport);
-			newconn = sock.accept();
+    public void addAdjancent(int port) {
+        adjPort.add(port);
+    }
 
-		} catch (Exception e) { // handle the many possible errors (see C example)
+    public String toString() {
+        return "Station: " + sName + "\nTCP Port: " + tcpPort + "\nUDP Port: " + udpPort + "\nAdjancent Ports:"
+                + adjPort.toString();
+    }
 
-			System.out.println("Err: " + e);
-			System.exit(1);
-		}
-	}
 }
