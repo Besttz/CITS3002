@@ -20,15 +20,18 @@ class Server {
         // adjStationNum = 0;
     }
 
+    /**
+     * To add adjancent station's UDP port while initialisation
+     * @param port: The new adjancent port to add
+     */
     public void addAdjancent(int port) {
         adjPort.add(port);
-        // adjStationNum ++;
     }
 
     /**
      * Clear timeTable then Read tt-<Station Name> file to update
      */
-    public void readTT() {
+    private void readTT() {
         timeTable.clear();
         try {
             File file = new File("tt-" + sName); // Open the TimeTable File
@@ -61,6 +64,9 @@ class Server {
 
     }
 
+    /**
+     * Print Station Description to help developer to check.
+     */
     public String toString() {
         return "Station: " + sName + "\nTCP Port: " + tcpPort + "\nUDP Port: " + udpPort + "\nAdjancent Ports:"
                 + adjPort.toString();

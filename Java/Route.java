@@ -1,5 +1,5 @@
 /**
- * Routes
+ * Routes saved for time table
  */
 public class Route {
     String from;
@@ -11,6 +11,9 @@ public class Route {
     int arriveM;
     String destination;
 
+    /**
+     * Create a new route info.
+     */
     public Route(String fromARG, int departHARG, int departMARG,String nARG, String platARG, int arriveHARG, int arriveMARG,
             String destinationARG) {
         from = fromARG;
