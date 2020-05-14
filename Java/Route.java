@@ -5,17 +5,19 @@ public class Route {
     String from;
     int departH;
     int departM;
-    Boolean isTrain;
+    String name;
+    String platform;
     int arriveH;
     int arriveM;
     String destination;
 
-    public Route(String fromARG, int departHARG, int departMARG, Boolean isTrainARG, int arriveHARG, int arriveMARG,
+    public Route(String fromARG, int departHARG, int departMARG,String nARG, String platARG, int arriveHARG, int arriveMARG,
             String destinationARG) {
         from = fromARG;
         departH = departHARG;
         departM = departMARG;
-        isTrain = isTrainARG;
+        name = nARG;
+        platform = platARG;
         arriveH = arriveHARG;
         arriveM = arriveMARG;
         destination = destinationARG;
