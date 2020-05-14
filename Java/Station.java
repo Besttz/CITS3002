@@ -5,6 +5,7 @@ class Station {
 		for (int i = 3; i < args.length; i++) {
 			station.addAdjancent(Integer.parseInt(args[i]));
 		}
+		station.run();
 		System.out.println(station.toString());
 	}
 }

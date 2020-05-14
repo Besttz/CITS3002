@@ -22,6 +22,7 @@ class Server {
 
     /**
      * To add adjancent station's UDP port while initialisation
+     * 
      * @param port: The new adjancent port to add
      */
     public void addAdjancent(int port) {
@@ -72,4 +73,26 @@ class Server {
                 + adjPort.toString();
     }
 
+    /**
+     * Call this method to run the server
+     */
+    public void run() {
+        ServerSocket server;
+        try {
+            server = new ServerSocket(tcpPort);
+            System.out.println("Start to listen TCP");//TEST
+            Socket client = null;
+            boolean f = true;
+            while(f){
+                //Waiting for the TCP connection
+                client = server.accept();
+                System.out.println("Connected!");//TEST
+                // new Thread(new ServerThread(client)).start();
+            }
+            server.close();
+        } catch (IOException e) {
+            System.out.println("Cannot establish TCP connection");
+            e.printStackTrace();
+        }
+    }
 }
