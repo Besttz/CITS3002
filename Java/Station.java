@@ -6,10 +6,5 @@ class Station {
 			station.addAdjancent(Integer.parseInt(args[i]));
 		}
 		System.out.println(station.toString());
-		// System.out.print("Args: ");
-		// for (String string : args) {
-		// System.out.print(string + " ");
-		// }
-		// System.out.println();
 	}
 }
