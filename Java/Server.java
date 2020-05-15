@@ -80,22 +80,29 @@ class Server {
      * @return the request URL
      */
     private String parseRequest(InputStream inputARG) {
-        StringBuffer request = new StringBuffer(4096);
+        StringBuffer request = new StringBuffer(1024);
         int length;
-        byte[] buffer = new byte[4096];
+        byte[] buffer = new byte[1024];
         // Using a byte buffer to store this HTTP request
+        System.out.println("Start to parse"); //TEST
         try {
+            System.out.println("Reading Input1"); //TEST
             // Read input stream to buffer and save length
             length = inputARG.read(buffer);
+            System.out.println("Reading Input2"); //TEST
         } catch (IOException e) {
+            System.out.println("Reading Input ERROR"); //TEST
             e.printStackTrace();
             length = -1;
         }
+        System.out.println("Reading Input3"+length); //TEST
         for (int i = 0; i < length; i++) {
             request.append((char) buffer[i]);
         }
+        System.out.println("Reading Input4"); //TEST
         String requestString = request.toString();
-
+        
+        System.out.println("Reading URI"); //TEST
         // Get the real URI request from the full text
         int begin = requestString.indexOf(' ');
         int end = requestString.indexOf(' ', begin + 1);
@@ -117,6 +124,7 @@ class Server {
                 Socket client = null;
                 InputStream input = null;
                 OutputStream output = null;
+                
 
                 try {
                     // Waiting and create the client socket
@@ -124,17 +132,36 @@ class Server {
                     input = client.getInputStream();
                     output = client.getOutputStream();
 
-                    System.out.println("New Connection"); //TEST
-                    
+                    System.out.println("New Connection"); // TEST
+
                     String request = parseRequest(input);
-                    System.out.println(request); //TEST
+                    System.out.println(request); // TEST
                     
-                    // output.write(request.getBytes());
-                    String  response= "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
-                    + request.length() + "\n\n" + request;
-                    output.write(response.getBytes());
-                    
-                    System.out.println("Close Connection"); //TEST
+                    if (request.equals("")) {
+                        System.out.println("SKIP"); // TEST
+                    // }
+                    // else if (request.indexOf(1) != '?') {
+                    //     StringBuffer error = new StringBuffer();
+                    //     error.append("HTTP/1.1 400 file not found \n");
+                    //     error.append("Content-Type:text/html \n");
+                    //     error.append("Content-Length:20 \n").append("\n");
+                    //     error.append("<h1>File Not Found..</h1>");
+                    //     try {
+                    //         output.write(error.toString().getBytes());
+                    //         output.flush();
+                    //         output.close();
+                    //     } catch (IOException e) {
+                    //         e.printStackTrace();
+                    //     }
+                    } else {
+                        String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
+                                + request.length() + "\n\n" + request;
+                        output.write(response.getBytes());
+                        output.flush();
+                        output.close();
+                    }
+
+                    System.out.println("Close Connection"); // TEST
                     // Close this connection
                     client.close();
 
