@@ -17,12 +17,11 @@ class Server {
         adjPort = new ArrayList<>();
         timeTable = new ArrayList<>();
         readTT();
-        // adjStationNum = 0;
     }
 
     /**
      * To add adjancent station's UDP port while initialisation
-     * 
+     *
      * @param port: The new adjancent port to add
      */
     public void addAdjancent(int port) {
@@ -74,20 +73,68 @@ class Server {
     }
 
     /**
+     * Analysis the HTTP request from browser and return the URL
+     * @param inputARG the INputStream from socket
+     * @return the request URL
+     */
+    private String parseRequest(InputStream inputARG) {
+        StringBuffer request = new StringBuffer(4096);
+        int length;
+        byte[] buffer = new byte[4096];
+        // Using a byte buffer to store this HTTP request
+        try {
+            //Read input stream to buffer and save length
+            length = inputARG.read(buffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+            length = -1;
+        }
+        for (int i = 0; i < length; i++) {
+            request.append((char) buffer[i]);
+        }
+        System.out.print(request.toString());
+        // uri = parseUri(request.toString());
+        return "a";
+    }
+    /**
      * Call this method to run the server
      */
     public void run() {
         ServerSocket server;
         try {
             server = new ServerSocket(tcpPort);
-            System.out.println("Start to listen TCP");//TEST
-            Socket client = null;
-            boolean f = true;
-            while(f){
-                //Waiting for the TCP connection
-                client = server.accept();
-                System.out.println("Connected!");//TEST
-                // new Thread(new ServerThread(client)).start();
+            System.out.println("Start to listen TCP");// TEST
+            boolean running = true;
+            while (running) {
+                Socket client = null;
+                InputStream input = null;
+                OutputStream output = null;
+
+                try {
+                    // Waiting and create the client socket
+                    client = server.accept();
+                    input = client.getInputStream();
+                    output = client.getOutputStream();
+
+                    parseRequest(input); 
+
+                    // // 创建 Response 对象
+                    // Response response = new Response(output);
+                    // response.setRequest(request);
+                    // response.sendStaticResource();
+
+                    // Close this connection
+                    client.close();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    continue;
+                }
+
+                // // Waiting for the TCP connection
+                // client = server.accept();
+                // System.out.println("Connected!");// TEST
+                // // new Thread(new ServerThread(client)).start();
             }
             server.close();
         } catch (IOException e) {
