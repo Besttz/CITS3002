@@ -74,6 +74,8 @@ class Server {
 
     /**
      * Analysis the HTTP request from browser and return the URL
+     * 
+     * 
      * @param inputARG the INputStream from socket
      * @return the request URL
      */
@@ -83,7 +85,7 @@ class Server {
         byte[] buffer = new byte[4096];
         // Using a byte buffer to store this HTTP request
         try {
-            //Read input stream to buffer and save length
+            // Read input stream to buffer and save length
             length = inputARG.read(buffer);
         } catch (IOException e) {
             e.printStackTrace();
@@ -92,10 +94,16 @@ class Server {
         for (int i = 0; i < length; i++) {
             request.append((char) buffer[i]);
         }
-        System.out.print(request.toString());
-        // uri = parseUri(request.toString());
-        return "a";
+        String requestString = request.toString();
+
+        // Get the real URI request from the full text
+        int begin = requestString.indexOf(' ');
+        int end = requestString.indexOf(' ', begin + 1);
+        if (begin!=-1 && end >begin) 
+            return requestString.substring(begin + 1, end);
+        return "";
     }
+
     /**
      * Call this method to run the server
      */
@@ -116,7 +124,8 @@ class Server {
                     input = client.getInputStream();
                     output = client.getOutputStream();
 
-                    parseRequest(input); 
+                    String request = parseRequest(input);
+                    System.out.println(request); //TEST
 
                     // // 创建 Response 对象
                     // Response response = new Response(output);
