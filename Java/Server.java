@@ -99,7 +99,7 @@ class Server {
         // Get the real URI request from the full text
         int begin = requestString.indexOf(' ');
         int end = requestString.indexOf(' ', begin + 1);
-        if (begin!=-1 && end >begin) 
+        if (begin != -1 && end > begin)
             return requestString.substring(begin + 1, end);
         return "";
     }
@@ -125,12 +125,12 @@ class Server {
                     output = client.getOutputStream();
 
                     String request = parseRequest(input);
-                    System.out.println(request); //TEST
+                    // System.out.println(request); //TEST
 
-                    // // 创建 Response 对象
-                    // Response response = new Response(output);
-                    // response.setRequest(request);
-                    // response.sendStaticResource();
+                    // output.write(request.getBytes());
+                    String errorMessage = "HTTP/1.1 404 File Not Found\r\n" + "Content-Type: text/html\r\n"
+                            + "Content-Length: 23\r\n" + "\r\n" + "<h1>" + "File Not Found" + "</h1>";
+                    output.write(errorMessage.getBytes());
 
                     // Close this connection
                     client.close();
@@ -139,16 +139,20 @@ class Server {
                     e.printStackTrace();
                     continue;
                 }
-
-                // // Waiting for the TCP connection
-                // client = server.accept();
-                // System.out.println("Connected!");// TEST
-                // // new Thread(new ServerThread(client)).start();
             }
             server.close();
         } catch (IOException e) {
             System.out.println("Cannot establish TCP connection");
             e.printStackTrace();
         }
+    }
+
+    public static void main(String args[]) {
+        Server station = new Server(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+        for (int i = 3; i < args.length; i++) {
+            station.addAdjancent(Integer.parseInt(args[i]));
+        }
+        station.run();
+        System.out.println(station.toString());
     }
 }
