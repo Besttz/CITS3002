@@ -124,14 +124,17 @@ class Server {
                     input = client.getInputStream();
                     output = client.getOutputStream();
 
+                    System.out.println("New Connection"); //TEST
+                    
                     String request = parseRequest(input);
-                    // System.out.println(request); //TEST
-
+                    System.out.println(request); //TEST
+                    
                     // output.write(request.getBytes());
-                    String errorMessage = "HTTP/1.1 404 File Not Found\r\n" + "Content-Type: text/html\r\n"
-                            + "Content-Length: 23\r\n" + "\r\n" + "<h1>" + "File Not Found" + "</h1>";
-                    output.write(errorMessage.getBytes());
-
+                    String  response= "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
+                    + request.length() + "\n\n" + request;
+                    output.write(response.getBytes());
+                    
+                    System.out.println("Close Connection"); //TEST
                     // Close this connection
                     client.close();
 
