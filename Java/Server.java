@@ -99,8 +99,16 @@ class Server implements Runnable {
         // Get the real URI request from the full text
         int begin = requestString.indexOf(' ');
         int end = requestString.indexOf(' ', begin + 1);
-        if (begin != -1 && end > begin)
-            return requestString.substring(begin + 1, end);
+        if (begin != -1 && end > begin) {
+            String fullRequest = requestString.substring(begin + 1, end);
+            System.out.println("TCP Request: " + fullRequest); // TEST
+            if (fullRequest.contains("/?to=")) {
+                // Get the name of station from localhost:port/?to=XXX
+                String station = fullRequest.substring(5);
+                System.out.println("TCP Request Parsed: " + station); // TEST
+                return station;
+            }
+        }
         return "";
     }
 
@@ -132,48 +140,57 @@ class Server implements Runnable {
                         System.out.println("TCP: New Connection"); // TEST
 
                         String request = parseRequest(input);
-                        System.out.println(request); // TEST
+                        System.out.println("TCP Station Name: " + request); // TEST
 
-                        // SEND UDP MESSAGE // TEST
-                        byte[] buf = new byte[1024];
-                        DatagramSocket ds = new DatagramSocket(9000);
-                        DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
-                        String str_send = "Hello UDPserver";
-                        InetAddress loc = InetAddress.getLocalHost();
-                        DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(), loc,
-                                5001);
-                        ds.send(dp_send);
-                        boolean receivedResponse = false;
-                        while (!receivedResponse) {
-                            try {
-                                ds.receive(dp_receive);
-                                // if (!dp_receive.getAddress().equals(loc)) {
-                                //     throw new IOException("Received packet from an umknown source");
-                                // }
-                                receivedResponse = true;
-                            } catch (InterruptedIOException e) {
-                                // 如果接收数据时阻塞超时，重发并减少一次重发的次数
-                                // tries += 1;
-                                // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
+                        if (request.length() > 0) {
+                            // SEND UDP MESSAGE // TEST
+                            byte[] buf = new byte[1024];
+                            DatagramSocket ds = new DatagramSocket(9000);
+                            DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
+                            String str_send = "Hello UDPserver";
+                            InetAddress loc = InetAddress.getLocalHost();
+                            DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(), loc,
+                                    5001);
+                            ds.send(dp_send);
+                            boolean receivedResponse = true; //Skip // TEST
+                            while (!receivedResponse) {
+                                try {
+                                    ds.receive(dp_receive);
+                                    // if (!dp_receive.getAddress().equals(loc)) {
+                                    // throw new IOException("Received packet from an umknown source");
+                                    // }
+                                    receivedResponse = true;
+                                } catch (InterruptedIOException e) {
+                                    // 如果接收数据时阻塞超时，重发并减少一次重发的次数
+                                    // tries += 1;
+
+                                    // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
+                                }
                             }
+
+                            // System.out.println("UDP: Client received data from server：");
+                            // String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength()) + " from "
+                            //         + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                            // System.out.println(str_receive);
+                            // dp_receive.setLength(1024);
+
+                            ds.close();
+
+                            // HTTP Response
+                            String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
+                                    + request.length() + "\n\n" + request;
+                            output.write(response.getBytes());
+                            output.flush();
+                            output.close();
+                        } else {
+                            // HTTP 404 Response
+                            String response = "HTTP/1.1 404 Not Found \n" + "Content-Type: text/html\n" + "Content-Length: 29"
+                                    + "\n\n"+"<h1>Request Not Correct!</h1>";
+                            output.write(response.getBytes());
+                            output.flush();
+                            output.close();
+                            System.out.println("TCP: 404 Responsed"); // TEST
                         }
-
-                        System.out.println("UDP: Client received data from server：");
-                        String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength()) + " from "
-                                + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
-                        System.out.println(str_receive);
-                        // 由于dp_receive在接收了数据之后，其内部消息长度值会变为实际接收的消息的字节数，
-                        // 所以这里要将dp_receive的内部消息长度重新置为1024
-                        dp_receive.setLength(1024);
-
-                        ds.close();
-
-                        // HTTP Response
-                        String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
-                                + request.length() + "\n\n" + request;
-                        output.write(response.getBytes());
-                        output.flush();
-                        output.close();
 
                         System.out.println("TCP: Close Connection"); // TEST
                         // Close this connection
