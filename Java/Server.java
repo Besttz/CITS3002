@@ -6,7 +6,7 @@ class Server implements Runnable {
     private int tcpPort;
     private int udpPort;
     private ArrayList<Integer> adjPort;
-    private  ArrayList<Route> timeTable;
+    private ArrayList<Route> timeTable;
     boolean tcpEstablished;
     String sName;
 
@@ -88,8 +88,9 @@ class Server implements Runnable {
             // Read input stream to buffer and save length
             length = inputARG.read(buffer);
         } catch (IOException e) {
-            e.printStackTrace();
-            length = -1;
+            // e.printStackTrace();
+            return "";
+            // length = -1;
         }
         for (int i = 0; i < length; i++) {
             request.append((char) buffer[i]);
@@ -112,7 +113,7 @@ class Server implements Runnable {
             ServerSocket server;
             try {
                 server = new ServerSocket(tcpPort);
-                System.out.println("Start to listen TCP at "+tcpPort);// TEST
+                System.out.println("Start to listen TCP at " + tcpPort);// TEST
                 boolean running = true;
                 while (running) {
                     Socket client = null;
@@ -123,23 +124,58 @@ class Server implements Runnable {
                     try {
                         // Waiting and create the client socket
                         client = server.accept();
-                        client.setSoTimeout(200);
+                        client.setSoTimeout(500);
                         input = client.getInputStream();
                         output = client.getOutputStream();
                         // in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-                        System.out.println("New Connection"); // TEST
+                        System.out.println("TCP: New Connection"); // TEST
 
                         String request = parseRequest(input);
                         System.out.println(request); // TEST
 
+                        // SEND UDP MESSAGE // TEST
+                        byte[] buf = new byte[1024];
+                        DatagramSocket ds = new DatagramSocket(9000);
+                        DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
+                        String str_send = "Hello UDPserver";
+                        InetAddress loc = InetAddress.getLocalHost();
+                        DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(), loc,
+                                udpPort);
+                        ds.send(dp_send);
+                        boolean receivedResponse = false;
+                        while (!receivedResponse) {
+                            try {
+                                ds.receive(dp_receive);
+                                // if (!dp_receive.getAddress().equals(loc)) {
+                                //     throw new IOException("Received packet from an umknown source");
+                                // }
+                                receivedResponse = true;
+                            } catch (InterruptedIOException e) {
+                                // 如果接收数据时阻塞超时，重发并减少一次重发的次数
+                                // tries += 1;
+                                // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
+                            }
+                        }
+
+                        System.out.println("UDP: Client received data from server：");
+                        String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength()) + " from "
+                                + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                        System.out.println(str_receive);
+                        // 由于dp_receive在接收了数据之后，其内部消息长度值会变为实际接收的消息的字节数，
+                        // 所以这里要将dp_receive的内部消息长度重新置为1024
+                        dp_receive.setLength(1024);
+
+                        ds.close();
+
+                        // HTTP Response
                         String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
                                 + request.length() + "\n\n" + request;
                         output.write(response.getBytes());
                         output.flush();
                         output.close();
 
-                        System.out.println("Close Connection"); // TEST
+                        System.out.println("TCP: Close Connection"); // TEST
                         // Close this connection
                         client.close();
 
@@ -155,19 +191,32 @@ class Server implements Runnable {
             }
         } else {
             try {
-
-                System.out.println("THIS IS UDP THREAD");
+                // System.out.println("THIS IS UDP THREAD"); //TEST
                 byte[] buf = new byte[1024];
                 DatagramSocket ds = new DatagramSocket(udpPort);
-                // 接收从客户端发送过来的数据
                 DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
-                System.out.println("Start to listen UDP at "+udpPort);
-                // System.out.println("UDP Station: " + sName + "\nTCP Port: " + tcpPort +
-                // "\nUDP Port: " + udpPort);
+                System.out.println("Start to listen UDP at " + udpPort);
+                boolean running = true;
+                while (running) {
+                    ds.receive(dp_receive);
+                    System.out.println("UDP: Received data: ");
+                    String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength()) + " from "
+                            + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                    System.out.println(str_receive);
+                    String str_send = "Reply from UDP receiver.";
+                    DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(),
+                            dp_receive.getAddress(), 9000);
+                    ds.send(dp_send);
+                    // 由于dp_receive在接收了数据之后，其内部消息长度值会变为实际接收的消息的字节数，
+                    // 所以这里要将dp_receive的内部消息长度重新置为1024
+                    dp_receive.setLength(1024);
+                }
+                ds.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
     }
 
     public static void main(String args[]) {
