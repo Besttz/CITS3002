@@ -2,12 +2,12 @@ import java.net.*;
 import java.util.*;
 import java.io.*;
 
-class Server {
+class Server implements Runnable {
     private int tcpPort;
     private int udpPort;
     private ArrayList<Integer> adjPort;
-    private ArrayList<Route> timeTable;
-    // private int adjStationNum;
+    private  ArrayList<Route> timeTable;
+    boolean tcpEstablished;
     String sName;
 
     public Server(String name, int tcp, int udp) {
@@ -75,7 +75,6 @@ class Server {
     /**
      * Analysis the HTTP request from browser and return the URL
      * 
-     * 
      * @param inputARG the INputStream from socket
      * @return the request URL
      */
@@ -108,49 +107,66 @@ class Server {
      * Call this method to run the server
      */
     public void run() {
-        ServerSocket server;
-        try {
-            server = new ServerSocket(tcpPort);
-            System.out.println("Start to listen TCP");// TEST
-            boolean running = true;
-            while (running) {
-                Socket client = null;
-                InputStream input = null;
-                OutputStream output = null;
-                // BufferedReader in = null;
-                // PrintWriter out = null;
-                try {
-                    // Waiting and create the client socket
-                    client = server.accept();
-                    client.setSoTimeout(200);
-                    input = client.getInputStream();
-                    output = client.getOutputStream();
-                    // in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+        if (!tcpEstablished) {
+            tcpEstablished = true;
+            ServerSocket server;
+            try {
+                server = new ServerSocket(tcpPort);
+                System.out.println("Start to listen TCP at "+tcpPort);// TEST
+                boolean running = true;
+                while (running) {
+                    Socket client = null;
+                    InputStream input = null;
+                    OutputStream output = null;
+                    // BufferedReader in = null;
+                    // PrintWriter out = null;
+                    try {
+                        // Waiting and create the client socket
+                        client = server.accept();
+                        client.setSoTimeout(200);
+                        input = client.getInputStream();
+                        output = client.getOutputStream();
+                        // in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-                    System.out.println("New Connection"); // TEST
+                        System.out.println("New Connection"); // TEST
 
-                    String request = parseRequest(input);
-                    System.out.println(request); // TEST
+                        String request = parseRequest(input);
+                        System.out.println(request); // TEST
 
-                    String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
-                            + request.length() + "\n\n" + request;
-                    output.write(response.getBytes());
-                    output.flush();
-                    output.close();
+                        String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
+                                + request.length() + "\n\n" + request;
+                        output.write(response.getBytes());
+                        output.flush();
+                        output.close();
 
-                    System.out.println("Close Connection"); // TEST
-                    // Close this connection
-                    client.close();
+                        System.out.println("Close Connection"); // TEST
+                        // Close this connection
+                        client.close();
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    continue;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        continue;
+                    }
                 }
+                server.close();
+            } catch (IOException e) {
+                System.out.println("Cannot establish TCP connection");
+                e.printStackTrace();
             }
-            server.close();
-        } catch (IOException e) {
-            System.out.println("Cannot establish TCP connection");
-            e.printStackTrace();
+        } else {
+            try {
+
+                System.out.println("THIS IS UDP THREAD");
+                byte[] buf = new byte[1024];
+                DatagramSocket ds = new DatagramSocket(udpPort);
+                // 接收从客户端发送过来的数据
+                DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
+                System.out.println("Start to listen UDP at "+udpPort);
+                // System.out.println("UDP Station: " + sName + "\nTCP Port: " + tcpPort +
+                // "\nUDP Port: " + udpPort);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -159,7 +175,10 @@ class Server {
         for (int i = 3; i < args.length; i++) {
             station.addAdjancent(Integer.parseInt(args[i]));
         }
-        station.run();
-        System.out.println(station.toString());
+        Thread tcp = new Thread(station);
+        Thread udp = new Thread(station);
+        tcp.start();
+        udp.start();
+        // System.out.println(station.toString());
     }
 }
