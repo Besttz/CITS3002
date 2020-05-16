@@ -141,7 +141,7 @@ class Server implements Runnable {
                         String str_send = "Hello UDPserver";
                         InetAddress loc = InetAddress.getLocalHost();
                         DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(), loc,
-                                udpPort);
+                                5001);
                         ds.send(dp_send);
                         boolean receivedResponse = false;
                         while (!receivedResponse) {
