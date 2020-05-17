@@ -157,15 +157,16 @@ class Server implements Runnable {
         return -1;
     }
 
-    // TotalRoute, ArrivalH, ArrivalM, Route, Dest, Dept, DepartH/M, Platform,
+    // TotalRoute, ArrivalH, ArrivalM, Route, This Dest Name, Dest, Dept, DepartH/M,
+    // Platform,
     // LastPort
-    private String generateMessage(int totalRoute, int aH, int aM, String rN, String dN, int dH, int dM, String pN,
-            int lP) {
+    private String generateMessage(int totalRoute, int aH, int aM, String rN, String tdN, String dN, int dH, int dM,
+            String pN, int lP) {
         StringBuffer message = new StringBuffer("");
         if (totalRoute == 0) {
             message.append("0,");
-            message.append(
-                    aH + "," + aM + "," + rN + "," + dN + "," + sName + "," + dH + "," + dM + "," + pN + "," + lP);
+            message.append(aH + "," + aM + "," + rN + "," + tdN + "," + dN + "," + sName + "," + dH + "," + dM + ","
+                    + pN + "," + lP);
         } else if (totalRoute == 1) {
 
         }
@@ -216,12 +217,12 @@ class Server implements Runnable {
 
                                 if (thisRouteNo != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo);
-                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, request, cR.departH,
+                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, request, cR.departH,
                                             cR.departM, cR.platform, udpPort));
                                 }
                                 if (thisRouteNo2 != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo2);
-                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, request, cR.departH,
+                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, request, cR.departH,
                                             cR.departM, cR.platform, udpPort));
                                 }
                             }
