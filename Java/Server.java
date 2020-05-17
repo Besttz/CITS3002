@@ -9,6 +9,7 @@ class Server implements Runnable {
     private ArrayList<Route> timeTable;
     boolean tcpEstablished;
     String sName;
+    String delimeter = ",";
 
     public Server(String name, int tcp, int udp) {
         sName = name;
@@ -40,7 +41,6 @@ class Server implements Runnable {
             while (myReader.hasNextLine()) {
                 String line = myReader.nextLine();// Get a new line
                 // System.out.println("Opened File"); //TEST
-                String delimeter = ",";
                 String[] data = line.split(delimeter);
                 // Check if it's the first line
                 if (firstLine) {
@@ -112,6 +112,18 @@ class Server implements Runnable {
         return "";
     }
 
+    // TotalRoute, ArrivalH, ArrivalM, Route, Dest, DepartH/M, Platform, LastPort
+    private String generateMessage(int totalRoute, int aH, int aM, String rN, String dN, int dH, int dM, String pN, int lP) {
+        StringBuffer message = new StringBuffer("");
+        if (totalRoute == 0) {
+            message.append("0,");
+            message.append(aH+","+aM+rN+","+dN+","+dH+","+dM+","+pN+","+lP);
+        } else if (totalRoute == 1){
+            
+        }
+        return message.toString();
+    }
+
     /**
      * Call this method to run the server
      */
@@ -152,7 +164,7 @@ class Server implements Runnable {
                             DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(), loc,
                                     5001);
                             ds.send(dp_send);
-                            boolean receivedResponse = true; //Skip // TEST
+                            boolean receivedResponse = true; // Skip // TEST
                             while (!receivedResponse) {
                                 try {
                                     ds.receive(dp_receive);
@@ -169,8 +181,9 @@ class Server implements Runnable {
                             }
 
                             // System.out.println("UDP: Client received data from server：");
-                            // String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength()) + " from "
-                            //         + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                            // String str_receive = new String(dp_receive.getData(), 0,
+                            // dp_receive.getLength()) + " from "
+                            // + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
                             // System.out.println(str_receive);
                             // dp_receive.setLength(1024);
 
@@ -184,8 +197,8 @@ class Server implements Runnable {
                             output.close();
                         } else {
                             // HTTP 404 Response
-                            String response = "HTTP/1.1 404 Not Found \n" + "Content-Type: text/html\n" + "Content-Length: 29"
-                                    + "\n\n"+"<h1>Request Not Correct!</h1>";
+                            String response = "HTTP/1.1 404 Not Found \n" + "Content-Type: text/html\n"
+                                    + "Content-Length: 29" + "\n\n" + "<h1>Request Not Correct!</h1>";
                             output.write(response.getBytes());
                             output.flush();
                             output.close();
@@ -224,8 +237,6 @@ class Server implements Runnable {
                     DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(),
                             dp_receive.getAddress(), 9000);
                     ds.send(dp_send);
-                    // 由于dp_receive在接收了数据之后，其内部消息长度值会变为实际接收的消息的字节数，
-                    // 所以这里要将dp_receive的内部消息长度重新置为1024
                     dp_receive.setLength(1024);
                 }
                 ds.close();
@@ -233,7 +244,6 @@ class Server implements Runnable {
                 e.printStackTrace();
             }
         }
-
     }
 
     public static void main(String args[]) {
@@ -245,6 +255,5 @@ class Server implements Runnable {
         Thread udp = new Thread(station);
         tcp.start();
         udp.start();
-        // System.out.println(station.toString());
     }
 }
