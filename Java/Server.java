@@ -158,15 +158,16 @@ class Server implements Runnable {
     }
 
     // TotalRoute, ArrivalH, ArrivalM, Route, This Dest Name, Dest, Dept, DepartH/M,
-    // Platform,
-    // LastPort
+    // Platform, LastPort, LastStopName
+    // Total String = 1+ (tR+1)*8 +2, (tR+1)*8+3 
+    // 11/19/27
     private String generateMessage(int totalRoute, int aH, int aM, String rN, String tdN, String dN, int dH, int dM,
-            String pN, int lP) {
+            String pN) {
         StringBuffer message = new StringBuffer("");
         if (totalRoute == 0) {
             message.append("0,");
             message.append(aH + "," + aM + "," + rN + "," + tdN + "," + dN + "," + sName + "," + dH + "," + dM + ","
-                    + pN + "," + lP);
+                    + pN + "," + udpPort +"," +sName);
         } else if (totalRoute == 1) {
 
         }
@@ -218,12 +219,12 @@ class Server implements Runnable {
                                 if (thisRouteNo != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo);
                                     msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, request, cR.departH,
-                                            cR.departM, cR.platform, udpPort));
+                                            cR.departM, cR.platform));
                                 }
                                 if (thisRouteNo2 != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo2);
                                     msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, request, cR.departH,
-                                            cR.departM, cR.platform, udpPort));
+                                            cR.departM, cR.platform));
                                 }
                             }
                             // System.out.println(msgs.toString()); // TEST
