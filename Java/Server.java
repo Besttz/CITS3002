@@ -9,7 +9,7 @@ class Server implements Runnable {
     // private ArrayList<Route> timeTable;
     private ArrayList<ArrayList<Route>> timeTable;
     private ArrayList<String> routeName;
-    private ArrayList<Boolean> routeTerminal; // Yes if this route only has one side 
+    private ArrayList<Boolean> routeTerminal; // Yes if this route only has one side
     private ArrayList<String> routeNext; // Save the first next station when see a new route
     private boolean tcpEstablished;
     private String sName;
@@ -136,15 +136,25 @@ class Server implements Runnable {
         return "";
     }
 
-    private int findNextRoute(String routeName) {
-        int currentH = 8;
+    private int findNextRoute(int routeNo, boolean toRecordNextStation) {
+        int currentH = 6;
         int currentM = 0;
-        if (routeName.equals("")) {
-
-        } else {
-
+        ArrayList<Route> thisRoute = timeTable.get(routeNo);
+        // int checkI = -1;
+        // FIND THE index from currentH, then check down from this one
+        for (int i = 0; i < thisRoute.size(); i++) {
+            Route checkR = thisRoute.get(i);
+            if (checkR.departH < currentH)
+                continue;
+            if (checkR.departH == currentH && checkR.departM < currentM)
+                continue;
+            if (toRecordNextStation && !checkR.destination.equals(routeNext.get(routeNo)))
+                continue;
+            if (!toRecordNextStation && checkR.destination.equals(routeNext.get(routeNo)))
+                continue;
+            return i;
         }
-        return 0;
+        return -1;
     }
 
     // TotalRoute, ArrivalH, ArrivalM, Route, Dest, DepartH/M, Platform, LastPort
@@ -153,7 +163,7 @@ class Server implements Runnable {
         StringBuffer message = new StringBuffer("");
         if (totalRoute == 0) {
             message.append("0,");
-            message.append(aH + "," + aM + rN + "," + dN + "," + dH + "," + dM + "," + pN + "," + lP);
+            message.append(aH + "," + aM +","+ rN + "," + dN + "," + dH + "," + dM + "," + pN + "," + lP);
         } else if (totalRoute == 1) {
 
         }
@@ -192,6 +202,27 @@ class Server implements Runnable {
 
                         if (request.length() > 0) {
 
+                            ArrayList<String> msgs = new ArrayList<>();
+                            for (int i = 0; i < routeName.size(); i++) {
+                                int thisRouteNo = findNextRoute(i, true);
+                                int thisRouteNo2 = -1;
+                                if (!routeTerminal.get(i))
+                                    thisRouteNo2 = findNextRoute(i, false);
+                                // if (thisRouteNo == -1 && thisRouteNo2 == -1)
+                                // continue;
+
+                                if (thisRouteNo != -1) {
+                                    Route cR = timeTable.get(i).get(thisRouteNo);
+                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, request, cR.departH,
+                                            cR.departM, cR.platform, udpPort));
+                                }
+                                if (thisRouteNo2 != -1) {
+                                    Route cR = timeTable.get(i).get(thisRouteNo2);
+                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, request, cR.departH,
+                                            cR.departM, cR.platform, udpPort));
+                                }
+                            }
+                            System.out.println(msgs.toString());
                             // {
                             // // SEND UDP MESSAGE // TEST
                             // byte[] buf = new byte[1024];
