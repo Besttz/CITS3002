@@ -107,7 +107,7 @@ class Server implements Runnable {
         int length;
         byte[] buffer = new byte[1024];
         // Using a byte buffer to store this HTTP request
-        System.out.println("Start to parse"); // TEST
+        // System.out.println("Start to parse"); // TEST
         try {
             // Read input stream to buffer and save length
             length = inputARG.read(buffer);
@@ -125,11 +125,11 @@ class Server implements Runnable {
         int end = requestString.indexOf(' ', begin + 1);
         if (begin != -1 && end > begin) {
             String fullRequest = requestString.substring(begin + 1, end);
-            System.out.println("TCP Request: " + fullRequest); // TEST
+            // System.out.println("TCP Request: " + fullRequest); // TEST
             if (fullRequest.contains("/?to=")) {
                 // Get the name of station from localhost:port/?to=XXX
                 String station = fullRequest.substring(5);
-                System.out.println("TCP Request Parsed: " + station); // TEST
+                // System.out.println("TCP Request Parsed: " + station); // TEST
                 return station;
             }
         }
@@ -157,13 +157,15 @@ class Server implements Runnable {
         return -1;
     }
 
-    // TotalRoute, ArrivalH, ArrivalM, Route, Dest, DepartH/M, Platform, LastPort
+    // TotalRoute, ArrivalH, ArrivalM, Route, Dest, Dept, DepartH/M, Platform,
+    // LastPort
     private String generateMessage(int totalRoute, int aH, int aM, String rN, String dN, int dH, int dM, String pN,
             int lP) {
         StringBuffer message = new StringBuffer("");
         if (totalRoute == 0) {
             message.append("0,");
-            message.append(aH + "," + aM +","+ rN + "," + dN + "," + dH + "," + dM + "," + pN + "," + lP);
+            message.append(
+                    aH + "," + aM + "," + rN + "," + dN + "," + sName + "," + dH + "," + dM + "," + pN + "," + lP);
         } else if (totalRoute == 1) {
 
         }
@@ -195,13 +197,14 @@ class Server implements Runnable {
                         output = client.getOutputStream();
                         // in = new BufferedReader(new InputStreamReader(client.getInputStream()));
 
-                        System.out.println("TCP: New Connection"); // TEST
+                        // System.out.println("TCP: New Connection"); // TEST
 
                         String request = parseRequest(input);
                         System.out.println("TCP Station Name: " + request); // TEST
 
                         if (request.length() > 0) {
 
+                            // Generate Messages
                             ArrayList<String> msgs = new ArrayList<>();
                             for (int i = 0; i < routeName.size(); i++) {
                                 int thisRouteNo = findNextRoute(i, true);
@@ -222,43 +225,53 @@ class Server implements Runnable {
                                             cR.departM, cR.platform, udpPort));
                                 }
                             }
-                            System.out.println(msgs.toString());
-                            // {
-                            // // SEND UDP MESSAGE // TEST
-                            // byte[] buf = new byte[1024];
-                            // DatagramSocket ds = new DatagramSocket(9000);
-                            // DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
-                            // String str_send = "Hello UDPserver";
-                            // InetAddress loc = InetAddress.getLocalHost();
-                            // DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(),
-                            // str_send.length(), loc,
-                            // 5001);
-                            // ds.send(dp_send);
-                            // boolean receivedResponse = true; // Skip // TEST
-                            // while (!receivedResponse) {
-                            // try {
-                            // ds.receive(dp_receive);
-                            // // if (!dp_receive.getAddress().equals(loc)) {
-                            // // throw new IOException("Received packet from an umknown source");
-                            // // }
-                            // receivedResponse = true;
-                            // } catch (InterruptedIOException e) {
-                            // // 如果接收数据时阻塞超时，重发并减少一次重发的次数
-                            // // tries += 1;
+                            // System.out.println(msgs.toString()); // TEST
 
-                            // // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
-                            // }
-                            // }
+                            String answer;
+                            if (msgs.size() == 0) { // Means no more routes
+                                answer = "No more available trip today!";
+                            } else {
+                                // SEND UDP MESSAGE // TEST
+                                byte[] buf = new byte[1024];
+                                DatagramSocket ds = new DatagramSocket(9000);
+                                DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
+                                InetAddress loc = InetAddress.getLocalHost();
 
-                            // // System.out.println("UDP: Client received data from server：");
-                            // // String str_receive = new String(dp_receive.getData(), 0,
-                            // // dp_receive.getLength()) + " from "
-                            // // + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
-                            // // System.out.println(str_receive);
-                            // // dp_receive.setLength(1024);
+                                for (int i = 0; i < adjPort.size(); i++) {
+                                    for (int j = 0; j < msgs.size(); j++) {
+                                        String str_send = msgs.get(j);
+                                        DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(),
+                                                str_send.length(), loc, adjPort.get(i));
+                                        ds.send(dp_send);
+                                        System.out.println(
+                                                "TCP-UDP: Send Message: " + str_send + " to " + adjPort.get(i)); // TEST
+                                    }
+                                }
+                                boolean receivedResponse = true; // Skip // TEST
+                                while (!receivedResponse) {
+                                    try {
+                                        ds.receive(dp_receive);
+                                        // if (!dp_receive.getAddress().equals(loc)) {
+                                        // throw new IOException("Received packet from an umknown source");
+                                        // }
+                                        receivedResponse = true;
+                                    } catch (InterruptedIOException e) {
+                                        // 如果接收数据时阻塞超时，重发并减少一次重发的次数
+                                        // tries += 1;
 
-                            // ds.close();
-                            // }
+                                        // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
+                                    }
+                                }
+
+                                // System.out.println("UDP: Client received data from server：");
+                                // String str_receive = new String(dp_receive.getData(), 0,
+                                // dp_receive.getLength()) + " from "
+                                // + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                                // System.out.println(str_receive);
+                                // dp_receive.setLength(1024);
+
+                                ds.close();
+                            }
 
                             // HTTP Response
                             String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
@@ -273,10 +286,10 @@ class Server implements Runnable {
                             output.write(response.getBytes());
                             output.flush();
                             output.close();
-                            System.out.println("TCP: 404 Responsed"); // TEST
+                            // System.out.println("TCP: 404 Responsed"); // TEST
                         }
 
-                        System.out.println("TCP: Close Connection"); // TEST
+                        // System.out.println("TCP: Close Connection"); // TEST
                         // Close this connection
                         client.close();
 
