@@ -6,10 +6,14 @@ class Server implements Runnable {
     private int tcpPort;
     private int udpPort;
     private ArrayList<Integer> adjPort;
-    private ArrayList<Route> timeTable;
-    boolean tcpEstablished;
-    String sName;
-    String delimeter = ",";
+    // private ArrayList<Route> timeTable;
+    private ArrayList<ArrayList<Route>> timeTable;
+    private ArrayList<String> routeName;
+    private ArrayList<Boolean> routeTerminal; // Yes if this route only has one side 
+    private ArrayList<String> routeNext; // Save the first next station when see a new route
+    private boolean tcpEstablished;
+    private String sName;
+    private String delimeter = ",";
 
     public Server(String name, int tcp, int udp) {
         sName = name;
@@ -17,6 +21,9 @@ class Server implements Runnable {
         udpPort = udp;
         adjPort = new ArrayList<>();
         timeTable = new ArrayList<>();
+        routeName = new ArrayList<>();
+        routeTerminal = new ArrayList<>();
+        routeNext = new ArrayList<>();
         readTT();
     }
 
@@ -49,11 +56,28 @@ class Server implements Runnable {
                     firstLine = false;
                     continue;// Check if the file has right station info
                 }
+                // Check if this route already recorded
+                int routeNo = -1; // The local no. of this route, -1 if unadd
+                for (int i = 0; i < routeName.size(); i++)
+                    if (routeName.get(i).equals(data[1]))
+                        routeNo = i;
+
+                if (routeNo == -1) { // Not Added Yet
+                    routeName.add(data[1]);
+                    timeTable.add(new ArrayList<>());
+                    routeNo = routeTerminal.size();
+                    routeNext.add(data[4]);
+                    routeTerminal.add(true);
+                }
+                // Check if this "next station" different than recorded
+                if (routeTerminal.get(routeNo) && !routeNext.get(routeNo).equals(data[4])) {
+                    routeTerminal.set(routeNo, false);
+                }
                 int dH = Integer.parseInt(data[0].substring(0, 2));
                 int dM = Integer.parseInt(data[0].substring(3, 5));
                 int aH = Integer.parseInt(data[3].substring(0, 2));
                 int aM = Integer.parseInt(data[3].substring(3, 5));
-                timeTable.add(new Route(sName, dH, dM, data[1], data[2], aH, aM, data[4]));
+                timeTable.get(routeNo).add(new Route(sName, dH, dM, data[1], data[2], aH, aM, data[4]));
                 // System.out.println(line);//TEST
             }
             myReader.close();
@@ -116,13 +140,13 @@ class Server implements Runnable {
         int currentH = 8;
         int currentM = 0;
         if (routeName.equals("")) {
-            
-        } else {
-            
-        }
 
-        
+        } else {
+
+        }
+        return 0;
     }
+
     // TotalRoute, ArrivalH, ArrivalM, Route, Dest, DepartH/M, Platform, LastPort
     private String generateMessage(int totalRoute, int aH, int aM, String rN, String dN, int dH, int dM, String pN,
             int lP) {
@@ -168,41 +192,41 @@ class Server implements Runnable {
 
                         if (request.length() > 0) {
 
-
                             // {
-                            //     // SEND UDP MESSAGE // TEST
-                            //     byte[] buf = new byte[1024];
-                            //     DatagramSocket ds = new DatagramSocket(9000);
-                            //     DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
-                            //     String str_send = "Hello UDPserver";
-                            //     InetAddress loc = InetAddress.getLocalHost();
-                            //     DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(), loc,
-                            //             5001);
-                            //     ds.send(dp_send);
-                            //     boolean receivedResponse = true; // Skip // TEST
-                            //     while (!receivedResponse) {
-                            //         try {
-                            //             ds.receive(dp_receive);
-                            //             // if (!dp_receive.getAddress().equals(loc)) {
-                            //             // throw new IOException("Received packet from an umknown source");
-                            //             // }
-                            //             receivedResponse = true;
-                            //         } catch (InterruptedIOException e) {
-                            //             // 如果接收数据时阻塞超时，重发并减少一次重发的次数
-                            //             // tries += 1;
+                            // // SEND UDP MESSAGE // TEST
+                            // byte[] buf = new byte[1024];
+                            // DatagramSocket ds = new DatagramSocket(9000);
+                            // DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
+                            // String str_send = "Hello UDPserver";
+                            // InetAddress loc = InetAddress.getLocalHost();
+                            // DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(),
+                            // str_send.length(), loc,
+                            // 5001);
+                            // ds.send(dp_send);
+                            // boolean receivedResponse = true; // Skip // TEST
+                            // while (!receivedResponse) {
+                            // try {
+                            // ds.receive(dp_receive);
+                            // // if (!dp_receive.getAddress().equals(loc)) {
+                            // // throw new IOException("Received packet from an umknown source");
+                            // // }
+                            // receivedResponse = true;
+                            // } catch (InterruptedIOException e) {
+                            // // 如果接收数据时阻塞超时，重发并减少一次重发的次数
+                            // // tries += 1;
 
-                            //             // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
-                            //         }
-                            //     }
+                            // // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
+                            // }
+                            // }
 
-                            //     // System.out.println("UDP: Client received data from server：");
-                            //     // String str_receive = new String(dp_receive.getData(), 0,
-                            //     // dp_receive.getLength()) + " from "
-                            //     // + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
-                            //     // System.out.println(str_receive);
-                            //     // dp_receive.setLength(1024);
+                            // // System.out.println("UDP: Client received data from server：");
+                            // // String str_receive = new String(dp_receive.getData(), 0,
+                            // // dp_receive.getLength()) + " from "
+                            // // + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                            // // System.out.println(str_receive);
+                            // // dp_receive.setLength(1024);
 
-                            //     ds.close();
+                            // ds.close();
                             // }
 
                             // HTTP Response
