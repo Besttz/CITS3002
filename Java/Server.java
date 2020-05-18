@@ -239,6 +239,7 @@ class Server implements Runnable {
                                 DatagramSocket ds = new DatagramSocket(9000);
                                 DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
                                 InetAddress loc = InetAddress.getLocalHost();
+                                ds.setSoTimeout(1000);
 
                                 for (int i = 0; i < adjPort.size(); i++) {
                                     for (int j = 0; j < msgs.size(); j++) {
@@ -251,7 +252,8 @@ class Server implements Runnable {
                                     }
                                 }
                                 boolean receivedResponse = false; // Skip // TEST
-                                while (!receivedResponse) {
+                                boolean timeOut = false;
+                                while (!receivedResponse&&!timeOut) {
                                     try {
                                         ds.receive(dp_receive);
                                         // if (!dp_receive.getAddress().equals(loc)) {
@@ -259,36 +261,39 @@ class Server implements Runnable {
                                         // }
                                         receivedResponse = true;
                                     } catch (InterruptedIOException e) {
-                                        // 如果接收数据时阻塞超时，重发并减少一次重发的次数
-                                        // tries += 1;
-
+                                        timeOut = true;
                                         // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
                                     }
                                 }
-                                String reply = new String(dp_receive.getData(), 0, dp_receive.getLength());
-                                System.out.println("TCP-UDP: Received data from destnation"); // TEST
-                                String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength())
-                                        + " from " + dp_receive.getPort();
-                                System.out.println(str_receive);
+                                if (receivedResponse) {
+                                    String reply = new String(dp_receive.getData(), 0, dp_receive.getLength());
+                                    System.out.println("TCP-UDP: Received data from destnation"); // TEST
+                                    String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength())
+                                            + " from " + dp_receive.getPort();
+                                    System.out.println(str_receive);
+                                    // Generate Answer to TCP
+                                    // 0,6,31,busA_B,JunctionB,JunctionB,TerminalA,6,1,stopA,2001,JunctionB from
+                                    // 2001
+                                    String[] data = reply.split(delimeter);
+
+                                    StringBuffer finalResponse = new StringBuffer();
+                                    finalResponse.append("<h1>Total Route: " + 1 + "</h1>\n");
+                                    finalResponse.append("<h2>The Fastest Route: " + 1 + "</h2>\n");
+                                    for (int i = 0; i < 1; i++) {
+                                        finalResponse.append("<p>Route: " + (i + 1) + ", Transfer " + 0
+                                                + " time(s): <br>" + data[7] + ":" + data[8] + " at " + data[6] + " , "
+                                                + data[9] + " board " + data[3] + ", arrive " + data[4] + " at "
+                                                + data[1] + ":" + data[2] + ".</p>\n");
+                                    }
+                                    answer = finalResponse.toString();
+                                } else {
+                                    answer = "<h1>Can't Find a Route</h1>";
+                                }
+
                                 dp_receive.setLength(1024);
 
                                 ds.close();
 
-                                // Generate Answer to TCP
-                                // 0,6,31,busA_B,JunctionB,JunctionB,TerminalA,6,1,stopA,2001,JunctionB from
-                                // 2001
-                                String[] data = reply.split(delimeter);
-
-                                StringBuffer finalResponse = new StringBuffer();
-                                finalResponse.append("<h1>Total Route: " + 1 + "</h1>\n");
-                                finalResponse.append("<h2>The Fastest Route: " + 1 + "</h2>\n");
-                                for (int i = 0; i < 1; i++) {
-                                    finalResponse.append("<p>Route: " + (i + 1) + ", Transfer " + 0 + " time(s): <br>"
-                                            + data[7] + ":" + data[8] + " at " + data[6] + " , " + data[9] + " board "
-                                            + data[3] + ", arrive " + data[4] + " at " + data[1] + ":" + data[2]
-                                            + ".</p>\n");
-                                }
-                                answer = finalResponse.toString();
                             }
                             // HTTP Response
                             String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
@@ -345,24 +350,23 @@ class Server implements Runnable {
                     // Check if this is the destination
                     int msgDestnation = -1;
                     String msgReply;
-                    // if (data[5].equals(sName)) {
-                    // Send message back to departs port
-                    // All the same but the last two different
-                    StringBuffer msgR = new StringBuffer("");
-                    for (int i = 0; i < data.length - 2; i++) {
-                        msgR.append(data[i] + ",");
+                    if (data[5].equals(sName)) {
+                        // Send message back to departs port
+                        // All the same but the last two different
+                        StringBuffer msgR = new StringBuffer("");
+                        for (int i = 0; i < data.length - 2; i++) {
+                            msgR.append(data[i] + ",");
+                        }
+                        msgR.append(udpPort + "," + sName);
+                        msgReply = msgR.toString();
+                        System.out.println("UDP: Reply msg: " + msgReply);
+
+                        DatagramPacket dp_send = new DatagramPacket(msgReply.getBytes(), msgReply.length(),
+                                dp_receive.getAddress(), 9000);
+                        ds.send(dp_send);
+                    } else {
+
                     }
-                    msgR.append(udpPort + "," + sName);
-                    msgReply = msgR.toString();
-                    System.out.println("UDP: Reply msg: " + msgReply);
-
-                    // } else {
-
-                    // }
-
-                    DatagramPacket dp_send = new DatagramPacket(msgReply.getBytes(), msgReply.length(),
-                            dp_receive.getAddress(), 9000);
-                    ds.send(dp_send);
                 }
                 ds.close();
             } catch (Exception e) {
