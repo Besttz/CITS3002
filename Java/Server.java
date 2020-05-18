@@ -162,12 +162,12 @@ class Server implements Runnable {
     // 9Platform, 10LastPort, 11LastStopName
     // Total String = 1+ (tR+1)*9+2, (tR+1)*9+3
     // 11/19/27
-    private String generateMessage(int totalRoute, int aH, int aM, String rN, String tdN, String dN, int dH, int dM,
-            String pN) {
+    private String generateMessage(int totalRoute, int aH, int aM, String rN, String tdN, String dN, String departN,
+            int dH, int dM, String pN) {
         StringBuffer message = new StringBuffer("");
         if (totalRoute == 0) {
             message.append("0,");
-            message.append(aH + "," + aM + "," + rN + "," + tdN + "," + dN + "," + sName + "," + dH + "," + dM + ","
+            message.append(aH + "," + aM + "," + rN + "," + tdN + "," + dN + "," + departN + "," + dH + "," + dM + ","
                     + pN + "," + udpPort + "," + sName);
         } else if (totalRoute == 1) {
 
@@ -220,12 +220,12 @@ class Server implements Runnable {
                                 if (thisRouteNo != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo);
                                     msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination,
-                                            request, cR.departH, cR.departM, cR.platform));
+                                            request, sName, cR.departH, cR.departM, cR.platform));
                                 }
                                 if (thisRouteNo2 != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo2);
                                     msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination,
-                                            request, cR.departH, cR.departM, cR.platform));
+                                            request, sName, cR.departH, cR.departM, cR.platform));
                                 }
                             }
                             // System.out.println(msgs.toString()); // TEST
@@ -253,7 +253,7 @@ class Server implements Runnable {
                                 }
                                 boolean receivedResponse = false; // Skip // TEST
                                 boolean timeOut = false;
-                                while (!receivedResponse&&!timeOut) {
+                                while (!receivedResponse && !timeOut) {
                                     try {
                                         ds.receive(dp_receive);
                                         // if (!dp_receive.getAddress().equals(loc)) {
@@ -332,6 +332,7 @@ class Server implements Runnable {
                 DatagramSocket ds = new DatagramSocket(udpPort);
                 DatagramPacket dp_receive = new DatagramPacket(buf, 1024);
                 System.out.println("Start to listen UDP at " + udpPort);
+                InetAddress loc = InetAddress.getLocalHost();
                 boolean running = true;
                 while (running) {
                     dp_receive.setLength(1024);
@@ -364,8 +365,47 @@ class Server implements Runnable {
                         DatagramPacket dp_send = new DatagramPacket(msgReply.getBytes(), msgReply.length(),
                                 dp_receive.getAddress(), 9000);
                         ds.send(dp_send);
+                        // } else if (routeTerminal.get(routeName.indexOf(data[3]))) {
+                        //
+                        // continue;
                     } else {
+                        // Send msg to the next station of this route
+                        // Find the route no
+                        int routeNo = -1;
+                        for (int i = 0; i < routeTerminal.size(); i++) {
+                            if (routeName.get(i).equals(data[3])) {
+                                routeNo = i;
+                                break;
+                            }
+                        }
+                        // Check if this is the terminal of this route if the destination is not here
+                        if (routeNo == -1 || routeTerminal.get(routeNo))
+                            continue;
+                        boolean toTheRecordStation = true;
+                        ArrayList<String> msgs = new ArrayList<>();
+                        if (routeNext.get(routeNo).equals(data[data.length - 1]))
+                            toTheRecordStation = false;
+                        int nextR = findNextRoute(routeNo, toTheRecordStation);
+                        if (nextR != -1) {
+                            Route cR = timeTable.get(routeNo).get(nextR);
+                            msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, data[5],
+                                    data[6], Integer.parseInt(data[7]), Integer.parseInt(data[8]), data[9]));
+                        }
 
+                        // Check if there're transferable routes
+
+                        // Forwoad all msgs
+                        if (msgs.size() > 0) {
+                            for (int i = 0; i < adjPort.size(); i++) {
+                                for (int j = 0; j < msgs.size(); j++) {
+                                    String str_send = msgs.get(j);
+                                    DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(),
+                                            loc, adjPort.get(i));
+                                    ds.send(dp_send);
+                                    System.out.println("UDP: Send Message: " + str_send + " to " + adjPort.get(i)); // TEST
+                                }
+                            }
+                        }
                     }
                 }
                 ds.close();
