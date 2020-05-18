@@ -250,8 +250,7 @@ class Server implements Runnable {
                                                 "TCP-UDP: Send Message: " + str_send + " to " + adjPort.get(i)); // TEST
                                     }
                                 }
-                                boolean receivedResponse;
-                                receivedResponse = false; // Skip // TEST
+                                boolean receivedResponse = false; // Skip // TEST
                                 while (!receivedResponse) {
                                     try {
                                         ds.receive(dp_receive);
@@ -266,20 +265,34 @@ class Server implements Runnable {
                                         // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
                                     }
                                 }
-
+                                String reply = new String(dp_receive.getData(), 0, dp_receive.getLength());
                                 System.out.println("TCP-UDP: Received data from destnation"); // TEST
-                                String str_receive = new String(dp_receive.getData(), 0,
-                                dp_receive.getLength()) + " from "
-                                + dp_receive.getPort();
+                                String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength())
+                                        + " from " + dp_receive.getPort();
                                 System.out.println(str_receive);
                                 dp_receive.setLength(1024);
 
                                 ds.close();
-                            }
 
+                                // Generate Answer to TCP
+                                // 0,6,31,busA_B,JunctionB,JunctionB,TerminalA,6,1,stopA,2001,JunctionB from
+                                // 2001
+                                String[] data = reply.split(delimeter);
+
+                                StringBuffer finalResponse = new StringBuffer();
+                                finalResponse.append("<h1>Total Route: " + 1 + "</h1>\n");
+                                finalResponse.append("<h2>The Fastest Route: " + 1 + "</h2>\n");
+                                for (int i = 0; i < 1; i++) {
+                                    finalResponse.append("<p>Route: " + (i + 1) + ", Transfer " + 0 + " time(s): <br>"
+                                            + data[7] + ":" + data[8] + " at " + data[6] + " , " + data[9] + " board "
+                                            + data[3] + ", arrive " + data[4] + " at " + data[1] + ":" + data[2]
+                                            + ".</p>\n");
+                                }
+                                answer = finalResponse.toString();
+                            }
                             // HTTP Response
                             String response = "HTTP/1.1 200 ok \n" + "Content-Type: text/html\n" + "Content-Length: "
-                                    + request.length() + "\n\n" + request;
+                                    + answer.length() + "\n\n" + answer;
                             output.write(response.getBytes());
                             output.flush();
                             output.close();
@@ -321,10 +334,9 @@ class Server implements Runnable {
                     System.out.println("UDP: Received data:");
                     String msg = new String(dp_receive.getData(), 0, dp_receive.getLength());
                     {
-                    String str_receive = new String(dp_receive.getData(), 0,
-                    dp_receive.getLength()) + " from "
-                    + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
-                    System.out.println(str_receive);
+                        String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength()) + " from "
+                                + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                        System.out.println(str_receive);
                     } // TEST
                     String[] data = msg.split(delimeter);
                     // Check if this message send for me
@@ -334,20 +346,19 @@ class Server implements Runnable {
                     int msgDestnation = -1;
                     String msgReply;
                     // if (data[5].equals(sName)) {
-                        // Send message back to departs port
-                        // All the same but the last two different
-                        StringBuffer msgR = new StringBuffer("");
-                        for (int i = 0; i < data.length - 2; i++){
-                            msgR.append(data[i]+ ",");
-                        }
-                        msgR.append(udpPort + "," + sName);
-                        msgReply = msgR.toString();
-                    System.out.println("UDP: Reply msg: "+msgReply);
-                        
+                    // Send message back to departs port
+                    // All the same but the last two different
+                    StringBuffer msgR = new StringBuffer("");
+                    for (int i = 0; i < data.length - 2; i++) {
+                        msgR.append(data[i] + ",");
+                    }
+                    msgR.append(udpPort + "," + sName);
+                    msgReply = msgR.toString();
+                    System.out.println("UDP: Reply msg: " + msgReply);
+
                     // } else {
 
                     // }
-                    
 
                     DatagramPacket dp_send = new DatagramPacket(msgReply.getBytes(), msgReply.length(),
                             dp_receive.getAddress(), 9000);
