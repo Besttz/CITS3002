@@ -127,7 +127,7 @@ class Server implements Runnable {
             String fullRequest = requestString.substring(begin + 1, end);
             // System.out.println("TCP Request: " + fullRequest); // TEST
             if (fullRequest.contains("/?to=")) {
-                // Get the name of station from localhost:port/?to=XXX
+                // Get the name of station from localhost:port/?to=
                 String station = fullRequest.substring(5);
                 // System.out.println("TCP Request Parsed: " + station); // TEST
                 return station;
@@ -157,9 +157,10 @@ class Server implements Runnable {
         return -1;
     }
 
-    // TotalRoute, ArrivalH, ArrivalM, Route, This Dest Name, Dest, Dept, DepartH/M,
-    // Platform, LastPort, LastStopName
-    // Total String = 1+ (tR+1)*8 +2, (tR+1)*8+3 
+    // 0TotalRoute, 1ArrivalH, 2ArrivalM, 3Route, 4This Dest Name, 5Dest, 6Dept,
+    // 7DepartH, 8M,
+    // 9Platform, 10LastPort, 11LastStopName
+    // Total String = 1+ (tR+1)*9+2, (tR+1)*9+3
     // 11/19/27
     private String generateMessage(int totalRoute, int aH, int aM, String rN, String tdN, String dN, int dH, int dM,
             String pN) {
@@ -167,7 +168,7 @@ class Server implements Runnable {
         if (totalRoute == 0) {
             message.append("0,");
             message.append(aH + "," + aM + "," + rN + "," + tdN + "," + dN + "," + sName + "," + dH + "," + dM + ","
-                    + pN + "," + udpPort +"," +sName);
+                    + pN + "," + udpPort + "," + sName);
         } else if (totalRoute == 1) {
 
         }
@@ -218,13 +219,13 @@ class Server implements Runnable {
 
                                 if (thisRouteNo != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo);
-                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, request, cR.departH,
-                                            cR.departM, cR.platform));
+                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination,
+                                            request, cR.departH, cR.departM, cR.platform));
                                 }
                                 if (thisRouteNo2 != -1) {
                                     Route cR = timeTable.get(i).get(thisRouteNo2);
-                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, request, cR.departH,
-                                            cR.departM, cR.platform));
+                                    msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination,
+                                            request, cR.departH, cR.departM, cR.platform));
                                 }
                             }
                             // System.out.println(msgs.toString()); // TEST
@@ -249,7 +250,8 @@ class Server implements Runnable {
                                                 "TCP-UDP: Send Message: " + str_send + " to " + adjPort.get(i)); // TEST
                                     }
                                 }
-                                boolean receivedResponse = true; // Skip // TEST
+                                boolean receivedResponse;
+                                receivedResponse = false; // Skip // TEST
                                 while (!receivedResponse) {
                                     try {
                                         ds.receive(dp_receive);
@@ -265,12 +267,12 @@ class Server implements Runnable {
                                     }
                                 }
 
-                                // System.out.println("UDP: Client received data from server：");
-                                // String str_receive = new String(dp_receive.getData(), 0,
-                                // dp_receive.getLength()) + " from "
-                                // + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
-                                // System.out.println(str_receive);
-                                // dp_receive.setLength(1024);
+                                System.out.println("TCP-UDP: Received data from destnation"); // TEST
+                                String str_receive = new String(dp_receive.getData(), 0,
+                                dp_receive.getLength()) + " from "
+                                + dp_receive.getPort();
+                                System.out.println(str_receive);
+                                dp_receive.setLength(1024);
 
                                 ds.close();
                             }
@@ -314,16 +316,42 @@ class Server implements Runnable {
                 System.out.println("Start to listen UDP at " + udpPort);
                 boolean running = true;
                 while (running) {
+                    dp_receive.setLength(1024);
                     ds.receive(dp_receive);
-                    System.out.println("UDP: Received data: ");
-                    String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength()) + " from "
-                            + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
+                    System.out.println("UDP: Received data:");
+                    String msg = new String(dp_receive.getData(), 0, dp_receive.getLength());
+                    {
+                    String str_receive = new String(dp_receive.getData(), 0,
+                    dp_receive.getLength()) + " from "
+                    + dp_receive.getAddress().getHostAddress() + ":" + dp_receive.getPort();
                     System.out.println(str_receive);
-                    String str_send = "Reply from UDP receiver.";
-                    DatagramPacket dp_send = new DatagramPacket(str_send.getBytes(), str_send.length(),
+                    } // TEST
+                    String[] data = msg.split(delimeter);
+                    // Check if this message send for me
+                    if (!data[4].equals(sName))
+                        continue;
+                    // Check if this is the destination
+                    int msgDestnation = -1;
+                    String msgReply;
+                    // if (data[5].equals(sName)) {
+                        // Send message back to departs port
+                        // All the same but the last two different
+                        StringBuffer msgR = new StringBuffer("");
+                        for (int i = 0; i < data.length - 2; i++){
+                            msgR.append(data[i]+ ",");
+                        }
+                        msgR.append(udpPort + "," + sName);
+                        msgReply = msgR.toString();
+                    System.out.println("UDP: Reply msg: "+msgReply);
+                        
+                    // } else {
+
+                    // }
+                    
+
+                    DatagramPacket dp_send = new DatagramPacket(msgReply.getBytes(), msgReply.length(),
                             dp_receive.getAddress(), 9000);
                     ds.send(dp_send);
-                    dp_receive.setLength(1024);
                 }
                 ds.close();
             } catch (Exception e) {
