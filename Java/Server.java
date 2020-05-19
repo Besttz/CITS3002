@@ -41,6 +41,9 @@ class Server implements Runnable {
      */
     private void readTT() {
         timeTable.clear();
+        routeName.clear();
+        routeNext.clear();
+        routeTerminal.clear();
         try {
             File file = new File("tt-" + sName); // Open the TimeTable File
             Scanner myReader = new Scanner(file);
@@ -235,6 +238,7 @@ class Server implements Runnable {
                         System.out.println("TCP Station Name: " + request); // TEST
 
                         if (request.length() > 0) {
+                            readTT();
 
                             // Generate Messages
                             ArrayList<String> msgs = new ArrayList<>();
@@ -388,6 +392,7 @@ class Server implements Runnable {
                 while (running) {
                     dp_receive.setLength(1024);
                     ds.receive(dp_receive);
+                    readTT();
                     System.out.println("UDP: Received data:");
                     String msg = new String(dp_receive.getData(), 0, dp_receive.getLength());
                     {
