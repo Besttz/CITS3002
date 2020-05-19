@@ -411,6 +411,10 @@ class Server implements Runnable {
                         System.out.println("UDP: Message not for me");
                         continue;
                     }
+                    if (totalTrans>4) {
+                        System.out.println("Drop route more than 5 transfer.");
+                        continue;
+                    }
                     // Check if this is the destination
                     // int msgDestnation = -1;
                     String msgReply;
