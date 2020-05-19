@@ -169,9 +169,33 @@ class Server implements Runnable {
             message.append("0,");
             message.append(aH + "," + aM + "," + rN + "," + tdN + "," + dN + "," + departN + "," + dH + "," + dM + ","
                     + pN + "," + udpPort + "," + sName);
-        } else if (totalRoute == 1) {
-
         }
+        return message.toString();
+    }
+
+    private String genTransMsg(String[] oldMsg, Route route) {
+        StringBuffer message = new StringBuffer("");
+        int totalRoute = Integer.parseInt(oldMsg[0]) + 1;
+        message.append(totalRoute + ",");
+        for (int i = 1; i < oldMsg.length - 2; i++)
+            message.append(oldMsg[i] + ",");
+        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination + oldMsg[5]
+                + "," + sName + "," + route.departH + "," + route.departM + "," + route.platform + "," + sName
+                + udpPort);
+        return message.toString();
+    }
+
+    private String genForwardMsg(String[] oldMsg, Route route) {
+        StringBuffer message = new StringBuffer("");
+        int totalRoute = Integer.parseInt(oldMsg[0]) + 1;
+        message.append(oldMsg[0] + ",");
+        // Copy the previous route info
+        for (int i = 1; i < totalRoute * 9 + 1; i++)
+            message.append(oldMsg[i] + ",");
+        // Generate the new route
+        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination + oldMsg[5]
+                + "," + oldMsg[6 + totalRoute * 9] + "," + oldMsg[7 + totalRoute * 9] + "," + oldMsg[8 + totalRoute * 9]
+                + "," + oldMsg[9 + totalRoute * 9] + "," + sName + udpPort);
         return message.toString();
     }
 
@@ -346,12 +370,15 @@ class Server implements Runnable {
                     } // TEST
                     String[] data = msg.split(delimeter);
                     // Check if this message send for me
-                    if (!data[4].equals(sName))
+                    int totalTrans = Integer.parseInt(data[0]);
+                    String targetStation = data[4 + 9 * totalTrans];
+                    String finalDest  = data[5 + 9 * totalTrans];
+                    if (!targetStation.equals(sName))
                         continue;
                     // Check if this is the destination
-                    int msgDestnation = -1;
+                    // int msgDestnation = -1;
                     String msgReply;
-                    if (data[5].equals(sName)) {
+                    if (finalDest.equals(sName)) {
                         // Send message back to departs port
                         // All the same but the last two different
                         StringBuffer msgR = new StringBuffer("");
@@ -373,7 +400,7 @@ class Server implements Runnable {
                         // Find the route no
                         int routeNo = -1;
                         for (int i = 0; i < routeTerminal.size(); i++) {
-                            if (routeName.get(i).equals(data[3])) {
+                            if (routeName.get(i).equals(data[3 + 9 * totalTrans])) {
                                 routeNo = i;
                                 break;
                             }
@@ -388,12 +415,34 @@ class Server implements Runnable {
                         int nextR = findNextRoute(routeNo, toTheRecordStation);
                         if (nextR != -1) {
                             Route cR = timeTable.get(routeNo).get(nextR);
-                            msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination, data[5],
-                                    data[6], Integer.parseInt(data[7]), Integer.parseInt(data[8]), data[9]));
+                            msgs.add(genForwardMsg(data, cR));
+                            // msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination,
+                            // data[5],
+                            // data[6], Integer.parseInt(data[7]), Integer.parseInt(data[8]), data[9]));
                         }
 
                         // Check if there're transferable routes
+                        if (routeName.size() > 1) {
+                            for (int i = 0; i < routeName.size(); i++) {
+                                if (i == routeNo)
+                                    continue;
+                                int thisRouteNo = findNextRoute(i, true);
+                                int thisRouteNo2 = -1;
+                                if (!routeTerminal.get(i))
+                                    thisRouteNo2 = findNextRoute(i, false);
+                                // if (thisRouteNo == -1 && thisRouteNo2 == -1)
+                                // continue;
 
+                                if (thisRouteNo != -1) {
+                                    Route cR = timeTable.get(i).get(thisRouteNo);
+                                    msgs.add(genTransMsg(data, cR));
+                                }
+                                if (thisRouteNo2 != -1) {
+                                    Route cR = timeTable.get(i).get(thisRouteNo2);
+                                    msgs.add(genTransMsg(data, cR));
+                                }
+                            }
+                        }
                         // Forwoad all msgs
                         if (msgs.size() > 0) {
                             for (int i = 0; i < adjPort.size(); i++) {
