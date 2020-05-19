@@ -136,9 +136,14 @@ class Server implements Runnable {
         return "";
     }
 
-    private int findNextRoute(int routeNo, boolean toRecordNextStation) {
+    private int findNextRoute(int h, int m, int routeNo, boolean toRecordNextStation) {
         int currentH = 6;
         int currentM = 0;
+        if (h!=0) {
+            currentH = h;
+            currentM = m;
+        }
+
         ArrayList<Route> thisRoute = timeTable.get(routeNo);
         // int checkI = -1;
         // FIND THE index from currentH, then check down from this one
@@ -179,23 +184,23 @@ class Server implements Runnable {
         message.append(totalRoute + ",");
         for (int i = 1; i < oldMsg.length - 2; i++)
             message.append(oldMsg[i] + ",");
-        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination + oldMsg[5]
-                + "," + sName + "," + route.departH + "," + route.departM + "," + route.platform + "," + sName
+        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination  +","+ oldMsg[5]
+                + "," + sName + "," + route.departH + "," + route.departM + "," + route.platform + "," + sName +","
                 + udpPort);
         return message.toString();
     }
 
     private String genForwardMsg(String[] oldMsg, Route route) {
         StringBuffer message = new StringBuffer("");
-        int totalRoute = Integer.parseInt(oldMsg[0]) + 1;
+        int totalRoute = Integer.parseInt(oldMsg[0]);
         message.append(oldMsg[0] + ",");
         // Copy the previous route info
         for (int i = 1; i < totalRoute * 9 + 1; i++)
             message.append(oldMsg[i] + ",");
         // Generate the new route
-        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination + oldMsg[5]
-                + "," + oldMsg[6 + totalRoute * 9] + "," + oldMsg[7 + totalRoute * 9] + "," + oldMsg[8 + totalRoute * 9]
-                + "," + oldMsg[9 + totalRoute * 9] + "," + sName + udpPort);
+        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination + ","
+                + oldMsg[5] + "," + oldMsg[6 + totalRoute * 9] + "," + oldMsg[7 + totalRoute * 9] + ","
+                + oldMsg[8 + totalRoute * 9] + "," + oldMsg[9 + totalRoute * 9] + "," + sName +","+ udpPort);
         return message.toString();
     }
 
@@ -234,10 +239,10 @@ class Server implements Runnable {
                             // Generate Messages
                             ArrayList<String> msgs = new ArrayList<>();
                             for (int i = 0; i < routeName.size(); i++) {
-                                int thisRouteNo = findNextRoute(i, true);
+                                int thisRouteNo = findNextRoute(0,0,i, true);
                                 int thisRouteNo2 = -1;
                                 if (!routeTerminal.get(i))
-                                    thisRouteNo2 = findNextRoute(i, false);
+                                    thisRouteNo2 = findNextRoute(0,0,i, false);
                                 // if (thisRouteNo == -1 && thisRouteNo2 == -1)
                                 // continue;
 
@@ -275,22 +280,25 @@ class Server implements Runnable {
                                                 "TCP-UDP: Send Message: " + str_send + " to " + adjPort.get(i)); // TEST
                                     }
                                 }
-                                boolean receivedResponse = false; // Skip // TEST
+                                // boolean receivedResponse = false; // Skip // TEST
                                 boolean timeOut = false;
-                                while (!receivedResponse && !timeOut) {
+                                ArrayList<String> finalRoute = new ArrayList<>();
+                                // while (!receivedResponse && !timeOut) {
+                                while (!timeOut) {
                                     try {
                                         ds.receive(dp_receive);
                                         // if (!dp_receive.getAddress().equals(loc)) {
                                         // throw new IOException("Received packet from an umknown source");
                                         // }
-                                        receivedResponse = true;
+                                        // receivedResponse = true;
+                                        finalRoute.add(new String(dp_receive.getData(), 0, dp_receive.getLength()));
                                     } catch (InterruptedIOException e) {
                                         timeOut = true;
                                         // System.out.println("Time out," + (MAXNUM - tries) + " more tries...");
                                     }
                                 }
-                                if (receivedResponse) {
-                                    String reply = new String(dp_receive.getData(), 0, dp_receive.getLength());
+                                if (finalRoute.size() > 0) {
+                                    // String reply = new String(dp_receive.getData(), 0, dp_receive.getLength());
                                     System.out.println("TCP-UDP: Received data from destnation"); // TEST
                                     String str_receive = new String(dp_receive.getData(), 0, dp_receive.getLength())
                                             + " from " + dp_receive.getPort();
@@ -298,17 +306,36 @@ class Server implements Runnable {
                                     // Generate Answer to TCP
                                     // 0,6,31,busA_B,JunctionB,JunctionB,TerminalA,6,1,stopA,2001,JunctionB from
                                     // 2001
-                                    String[] data = reply.split(delimeter);
 
                                     StringBuffer finalResponse = new StringBuffer();
-                                    finalResponse.append("<h1>Total Route: " + 1 + "</h1>\n");
-                                    finalResponse.append("<h2>The Fastest Route: " + 1 + "</h2>\n");
-                                    for (int i = 0; i < 1; i++) {
-                                        finalResponse.append("<p>Route: " + (i + 1) + ", Transfer " + 0
-                                                + " time(s): <br>" + data[7] + ":" + data[8] + " at " + data[6] + " , "
-                                                + data[9] + " board " + data[3] + ", arrive " + data[4] + " at "
-                                                + data[1] + ":" + data[2] + ".</p>\n");
+                                    finalResponse.append("<h1>Total Route: " + finalRoute.size() + "</h1>\n");
+                                    ArrayList<Integer> tTime = new ArrayList<>();
+                                    for (int i = 0; i < finalRoute.size(); i++) {
+                                        String[] data = finalRoute.get(i).split(delimeter);
+                                        int transTime = Integer.parseInt(data[0]);
+                                        finalResponse.append("<p><br>Route: " + (i + 1) + ", Transfer " + data[0]
+                                                + " time(s): <br>");
+                                        for (int j = 0; j <= transTime; j++) {
+                                            finalResponse.append(data[7 + j * 9] + ":" + data[8 + j * 9] + " at "
+                                                    + data[6 + j * 9] + " , " + data[9 + j * 9] + " board "
+                                                    + data[3 + j * 9] + ", arrive " + data[4 + j * 9] + " at "
+                                                    + data[1 + j * 9] + ":" + data[2 + j * 9] + ".</p>\n");
+                                        }
+                                        int usedH = Integer.parseInt(data[1 + transTime * 9])
+                                                - Integer.parseInt(data[7]);
+                                        int usedM = Integer.parseInt(data[2 + transTime * 9])
+                                                - Integer.parseInt(data[8]);
+                                        tTime.add(usedH * 60 + usedM);
                                     }
+                                    int minTime = tTime.get(0);
+                                    int minTimeNo = 0;
+                                    for (int i = 1; i < tTime.size(); i++) {
+                                        if (tTime.get(i) < minTime) {
+                                            minTime = tTime.get(i);
+                                            minTimeNo = i;
+                                        }
+                                    }
+                                    finalResponse.append("<h2>The Fastest Route: " + minTimeNo + 1 + "</h2>\n");
                                     answer = finalResponse.toString();
                                 } else {
                                     answer = "<h1>Can't Find a Route</h1>";
@@ -372,15 +399,20 @@ class Server implements Runnable {
                     // Check if this message send for me
                     int totalTrans = Integer.parseInt(data[0]);
                     String targetStation = data[4 + 9 * totalTrans];
-                    String finalDest  = data[5 + 9 * totalTrans];
-                    if (!targetStation.equals(sName))
+                    String finalDest = data[5 + 9 * totalTrans];
+                    int arriveH = Integer.parseInt(data[1 + 9 * totalTrans]);
+                    int arriveM = Integer.parseInt(data[2 + 9 * totalTrans]);
+                    if (!targetStation.equals(sName)) {
+                        System.out.println("UDP: Message not for me");
                         continue;
+                    }
                     // Check if this is the destination
                     // int msgDestnation = -1;
                     String msgReply;
                     if (finalDest.equals(sName)) {
                         // Send message back to departs port
                         // All the same but the last two different
+                        System.out.println("UDP: The Destination reply to source");
                         StringBuffer msgR = new StringBuffer("");
                         for (int i = 0; i < data.length - 2; i++) {
                             msgR.append(data[i] + ",");
@@ -398,6 +430,7 @@ class Server implements Runnable {
                     } else {
                         // Send msg to the next station of this route
                         // Find the route no
+                        System.out.println("UDP: Ready to forward msg");
                         int routeNo = -1;
                         for (int i = 0; i < routeTerminal.size(); i++) {
                             if (routeName.get(i).equals(data[3 + 9 * totalTrans])) {
@@ -405,31 +438,35 @@ class Server implements Runnable {
                                 break;
                             }
                         }
+                        boolean forwardable = true;
                         // Check if this is the terminal of this route if the destination is not here
-                        if (routeNo == -1 || routeTerminal.get(routeNo))
-                            continue;
-                        boolean toTheRecordStation = true;
+                        if (routeNo == -1
+                                || (routeTerminal.get(routeNo)) && routeNext.get(routeNo).equals(data[data.length - 1]))
+                            forwardable = false;
                         ArrayList<String> msgs = new ArrayList<>();
-                        if (routeNext.get(routeNo).equals(data[data.length - 1]))
-                            toTheRecordStation = false;
-                        int nextR = findNextRoute(routeNo, toTheRecordStation);
-                        if (nextR != -1) {
-                            Route cR = timeTable.get(routeNo).get(nextR);
-                            msgs.add(genForwardMsg(data, cR));
-                            // msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination,
-                            // data[5],
-                            // data[6], Integer.parseInt(data[7]), Integer.parseInt(data[8]), data[9]));
+                        if (forwardable) {
+                            boolean toTheRecordStation = true;
+                            if (routeNext.get(routeNo).equals(data[data.length - 1]))
+                                toTheRecordStation = false;
+                            int nextR = findNextRoute(arriveH,arriveM, routeNo, toTheRecordStation);
+                            if (nextR != -1) {
+                                Route cR = timeTable.get(routeNo).get(nextR);
+                                msgs.add(genForwardMsg(data, cR));
+                                // msgs.add(generateMessage(0, cR.arriveH, cR.arriveM, cR.name, cR.destination,
+                                // data[5],
+                                // data[6], Integer.parseInt(data[7]), Integer.parseInt(data[8]), data[9]));
+                            }
                         }
-
                         // Check if there're transferable routes
                         if (routeName.size() > 1) {
+                            System.out.println("UDP: Ready to gen transfer msg");
                             for (int i = 0; i < routeName.size(); i++) {
                                 if (i == routeNo)
                                     continue;
-                                int thisRouteNo = findNextRoute(i, true);
+                                int thisRouteNo = findNextRoute(arriveH,arriveM, i, true);
                                 int thisRouteNo2 = -1;
                                 if (!routeTerminal.get(i))
-                                    thisRouteNo2 = findNextRoute(i, false);
+                                    thisRouteNo2 = findNextRoute(arriveH,arriveM, i, false);
                                 // if (thisRouteNo == -1 && thisRouteNo2 == -1)
                                 // continue;
 
