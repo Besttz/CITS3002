@@ -95,9 +95,9 @@ def genMsg(r, dest):
     return msg
 
 def genTransMsg(oldMsg,r):
-    msg =''
-    totalRoute = (int)(oldMsg[0])
-    for i in range(len(oldMsg)-2):
+    totalRoute = (int)(oldMsg[0])+1
+    msg =''+totalRoute+de
+    for i in range(1,len(oldMsg)-2):
         msg+=oldMsg[i]+de
     msg += r.arriveH+de+r.arriveM+de+r.name+de+r.destination+de+oldMsg[5] \
         +de+ sName +de+r.departH+de+r.departM+de+r.platform+de+udpPort+de+sName
