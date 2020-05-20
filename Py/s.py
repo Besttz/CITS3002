@@ -95,17 +95,17 @@ def findNextRoute(h, m, routeNo, toRecordNextStation):
 
 
 def genMsg(r, dest):
-    msg = "0,"+(str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.name)+de+dest + \
+    msg = "0,"+(str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.destination)+de+dest + \
         de+(str)(r.fromS)+de+(str)(r.departH)+de+(str)(r.departM)+de+(str)(r.platform)+de+(str)(udpPort)+de+sName
     return msg
 
 
 def genTransMsg(oldMsg, r):
     totalRoute = (int)(oldMsg[0]) + 1
-    msg = '' + totalRoute + de
+    msg = '' + str(totalRoute) + de
     for i in range(1, len(oldMsg) - 2):
         msg += oldMsg[i] + de
-    msg += (str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.name)+de+oldMsg[5] \
+    msg += (str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.destination)+de+oldMsg[5] \
         + de + sName + de+(str)(r.departH)+de+(str)(r.departM)+de+r.platform+de+(str)(udpPort)+de+sName
     return msg
 
@@ -136,7 +136,7 @@ def runTCP():
             recvData = clientsocket.recv(1024)
             print("TCP Receive from: %s" % str(addr))
             # print("TCP Full Request: " + str(recvData))
-            request = parseRequest(str(recvData))
+            request = parseRequest(bytes.decode(recvData))
             print("TCP Station Name: " + request)
             if len(request) > 0:
                 readTT()
@@ -163,22 +163,23 @@ def runTCP():
                             print("T-UDP: Send "+ms+" to "+adj)
                     timeOut = False
                     finalR = []
-                    udpTsocket.settimeout(10)
+                    udpTsocket.settimeout(2)
                     while not timeOut:
                         try:
                             data, addr = udpTsocket.recvfrom(1024)
-                            finalR.append(data)
+                            finalR.append(bytes.decode(data))
+                            print("T-UDP: Received: "+ finalR[-1])
                         except socket.timeout:
                             timeOut = True
                     if len(finalR) > 0:
                         # print("T-UDP: Received data from destnation")
-                        answer += "<h1>Total Route: " + len(finalR) + "</h1>\n"
+                        answer += "<h1>Total Route: " + (str)(len(finalR)) + "</h1>\n"
                         tTime = []
                         for i in range(len(finalR)):
                             data = finalR[i].split(de)
                             transTime = (int)(data[0])
                             answer += "<p><br>Route: " + \
-                                (i + 1) + ", Transfer " + \
+                                (str)(i + 1) + ", Transfer " + \
                                 data[0] + " time(s): <br>"
                             for j in range(transTime+1):
                                 answer += data[7 + j * 9] + ":" + data[8 + j * 9] + " at " + data[6 + j * 9] + " , " + data[9 + j * 9] + " board " + \
@@ -193,7 +194,7 @@ def runTCP():
                         minTime = min(tTime)
                         minTimeNo = tTime.index(minTime)
                         answer += "<h2>The Fastest Route: " + \
-                            (minTimeNo + 1) + "</h2>\n"
+                            (str)(minTimeNo + 1) + "</h2>\n"
                     else:
                         answer = "<h1>Can't Find a Route</h1>"
                     udpTsocket.close
@@ -220,8 +221,8 @@ def runUDP():
         # print('wating for message...')
         recvdata, addr = udpsocket.recvfrom(1024)
         readTT()
-        print("UDP: Received: " + (str)(recvdata))
-        data = (str)(recvdata).split(de)
+        print("UDP: Received: " + bytes.decode(recvdata))
+        data = bytes.decode(recvdata).split(de)
         totalTrans = (int)(data[0])
         routeN = data[3 + 9 * totalTrans]
         targetStation = data[4 + 9 * totalTrans]
@@ -268,10 +269,10 @@ def runUDP():
                         tRouteNo2 = findNextRoute(arriveH, arriveM, i, False)
                     if tRouteNo != -1:
                         cR = timeTable[i][tRouteNo]
-                        msg.append(genTransMsg(data, cR))
+                        msgs.append(genTransMsg(data, cR))
                     if tRouteNo2 != -1:
                         cR = timeTable[i][tRouteNo2]
-                        msg.append(genTransMsg(data, cR))
+                        msgs.append(genTransMsg(data, cR))
             if len(msgs) > 0:
                 for adj in adjPort:
                     for ms in msgs:
