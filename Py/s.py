@@ -8,7 +8,7 @@ timeTable = []
 routeName = []
 routeTerminal = []
 routeNext = []
-delimeter = ','
+de = ','
 
 
 class Route:
@@ -36,7 +36,7 @@ def readTT():
             firstLine = False
             continue
         routeNo = -1
-        data = line.split(delimeter)
+        data = line.split(de)
         # for rName in routeName:
         for i in range(len(routeName)):
             if routeName[i] == data[1]:
@@ -62,14 +62,48 @@ def parseRequest(request):
     begin = request.index(' ')
     end = request.index(' ', begin+1)
     if begin != -1 and end > begin:
-            fullRequest = request[begin + 1:end]
-            if fullRequest.find("/?to=") != -1:
-                station = fullRequest[5:]
-                return station
+        fullRequest = request[begin + 1:end]
+        if fullRequest.find("/?to=") != -1:
+            station = fullRequest[5:]
+            return station
     return ""
 
+
+def findNextRoute(h, m, routeNo, toRecordNextStation):
+    cH = 6
+    cM = 0
+    if h != 0:
+        cH = h
+        cM = m
+    cRoute = timeTable[routeNo]
+    for i in range(len(cRoute)):
+        checkR = cRoute[i]
+        if checkR.departH < cH:
+            continue
+        if checkR.departH == cH and checkR.departM < cM:
+            continue
+        if toRecordNextStation and not checkR.destination == routeNext[routeNo]:
+            continue
+        if toRecordNextStation and checkR.destination == routeNext[routeNo]:
+            continue
+        return i
+    return -1
+
+def genMsg(r, dest):
+    msg = "0,"+r.arriveH+de+r.arriveM+de+r.name+de+r.destination+de+dest + \
+        de+r.fromS+de+r.departH+de+r.departM+de+r.platform+de+udpPort+de+sName
+    return msg
+
+def genTransMsg(oldMsg,r):
+    msg =''
+    totalRoute = (int)(oldMsg[0])
+    for i in range(len(oldMsg)-2):
+        msg+=oldMsg[i]+de
+    msg += r.arriveH+de+r.arriveM+de+r.name+de+r.destination+de+oldMsg[5] \
+        +de+ sName +de+r.departH+de+r.departM+de+r.platform+de+udpPort+de+sName
+    return msg
+    
 readTT()
 print(timeTable)
-re = input("Enter URI") #TEST
-print(parseRequest(re)) #TEST
-
+re = input("Enter URI")  # TEST
+print(parseRequest(re))  # TEST
