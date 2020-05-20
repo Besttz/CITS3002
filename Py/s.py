@@ -1,4 +1,6 @@
 import sys
+import threading
+import socket
 
 sName = sys.argv[1]
 tcpPort = sys.argv[2]
@@ -60,8 +62,8 @@ def readTT():
 
 def parseRequest(request):
     # request = ""
-    begin = request.index(' ')
-    end = request.index(' ', begin + 1)
+    begin = request.find(' ')
+    end = request.find(' ', begin + 1)
     if begin != -1 and end > begin:
         fullRequest = request[begin + 1:end]
         if fullRequest.find("/?to=") != -1:
@@ -116,12 +118,49 @@ def genForwardMsg(oldMsg, r):
         +de+ oldMsg[6 + totalRoute * 9] +de+oldMsg[7 + totalRoute * 9]+de+oldMsg[8 + totalRoute * 9]+de+oldMsg[9 + totalRoute * 9]+de+udpPort+de+sName
     return msg
 
+
 def runTCP():
+    serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # host = socket.gethostname()
+    serversocket.bind(("0.0.0.0", (int)(tcpPort)))
+    serversocket.listen(5)
+    # serversocket.settimeout(5)
+    print(("Start to listen TCP at " + tcpPort))
+    while True:
+        try:
+            clientsocket, addr = serversocket.accept()
+            clientsocket.settimeout(2)
+            recvData = clientsocket.recv(1024)
+            print("TCP Receive from: %s" % str(addr))
+            # print("TCP Full Request: " + str(recvData))
+            request = parseRequest(str(recvData))
+            print("TCP Station Name: " + request)
+            if len(request) > 0:
+                readTT()
+            response = "HTTP/1.1 404 Not Found \n" + "Content-Type: text/html\n" + "Content-Length: 29" + "\n\n" + "<h1>Request Not Correct!</h1>"
+            clientsocket.send(response.encode('utf-8'))
+            clientsocket.close()
+        except socket.timeout:
+            # err = e.args[0]
+            # continue
+            continue
+
+    # msg = '欢迎访问菜鸟教程！' + "\r\n"
+    # clientsocket.close()
+
 
 def runUDP():
-    pass
+    for i in range(5):
+        print(i)
+
 
 readTT()
-print(timeTable)
-re = input("Enter URI")  # TEST
-print(parseRequest(re))  # TEST
+tcp = threading.Thread(target=runTCP, name='tcpThread')
+udp = threading.Thread(target=runUDP, name='udpThread')
+tcp.start()
+udp.start()
+tcp.join()
+udp.join()
+# print(timeTable)
+# re = input("Enter URI")  # TEST
+# print(parseRequest(re))  # TEST
