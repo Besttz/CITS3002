@@ -50,8 +50,9 @@ def readTT():
         if routeTerminal[routeNo] and not routeNext[routeNo] == data[4]:
             routeTerminal[routeNo] = False
         # dH = (int)(data[0][0:2])
-        newRoute = Route(sName, (int)(data[0][0:2]), (int)(
-            data[0][3:5]), data[1], data[2], (int)(data[3][0:2]), (int)(data[3][3:5]), data[4])
+        newRoute = Route(sName, (int)(data[0][0:2]), (int)(data[0][3:5]),
+                         data[1], data[2], (int)(data[3][0:2]),
+                         (int)(data[3][3:5]), data[4])
         timeTable[routeNo].append(newRoute)
 
     f.close()
@@ -60,7 +61,7 @@ def readTT():
 def parseRequest(request):
     # request = ""
     begin = request.index(' ')
-    end = request.index(' ', begin+1)
+    end = request.index(' ', begin + 1)
     if begin != -1 and end > begin:
         fullRequest = request[begin + 1:end]
         if fullRequest.find("/?to=") != -1:
@@ -89,20 +90,37 @@ def findNextRoute(h, m, routeNo, toRecordNextStation):
         return i
     return -1
 
+
 def genMsg(r, dest):
     msg = "0,"+r.arriveH+de+r.arriveM+de+r.name+de+r.destination+de+dest + \
         de+r.fromS+de+r.departH+de+r.departM+de+r.platform+de+udpPort+de+sName
     return msg
 
-def genTransMsg(oldMsg,r):
-    totalRoute = (int)(oldMsg[0])+1
-    msg =''+totalRoute+de
-    for i in range(1,len(oldMsg)-2):
-        msg+=oldMsg[i]+de
+
+def genTransMsg(oldMsg, r):
+    totalRoute = (int)(oldMsg[0]) + 1
+    msg = '' + totalRoute + de
+    for i in range(1, len(oldMsg) - 2):
+        msg += oldMsg[i] + de
     msg += r.arriveH+de+r.arriveM+de+r.name+de+r.destination+de+oldMsg[5] \
         +de+ sName +de+r.departH+de+r.departM+de+r.platform+de+udpPort+de+sName
     return msg
-    
+
+
+def genForwardMsg(oldMsg, r):
+    totalRoute = (int)(oldMsg[0])
+    msg = ''
+    for i in range(totalRoute * 9 + 1):
+        msg += oldMsg[i] + de
+    msg += r.arriveH+de+r.arriveM+de+r.name+de+r.destination+de+oldMsg[5] \
+        +de+ oldMsg[6 + totalRoute * 9] +de+oldMsg[7 + totalRoute * 9]+de+oldMsg[8 + totalRoute * 9]+de+oldMsg[9 + totalRoute * 9]+de+udpPort+de+sName
+    return msg
+
+def runTCP():
+
+def runUDP():
+    pass
+
 readTT()
 print(timeTable)
 re = input("Enter URI")  # TEST
