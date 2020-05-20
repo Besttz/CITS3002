@@ -142,7 +142,7 @@ class Server implements Runnable {
     private int findNextRoute(int h, int m, int routeNo, boolean toRecordNextStation) {
         int currentH = 6;
         int currentM = 0;
-        if (h!=0) {
+        if (h != 0) {
             currentH = h;
             currentM = m;
         }
@@ -187,9 +187,9 @@ class Server implements Runnable {
         message.append(totalRoute + ",");
         for (int i = 1; i < oldMsg.length - 2; i++)
             message.append(oldMsg[i] + ",");
-        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination  +","+ oldMsg[5]
-                + "," + sName + "," + route.departH + "," + route.departM + "," + route.platform + "," + sName +","
-                + udpPort);
+        message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination + ","
+                + oldMsg[5] + "," + sName + "," + route.departH + "," + route.departM + "," + route.platform + ","
+                + udpPort + "," + sName);
         return message.toString();
     }
 
@@ -203,7 +203,7 @@ class Server implements Runnable {
         // Generate the new route
         message.append(route.arriveH + "," + route.arriveM + "," + route.name + "," + route.destination + ","
                 + oldMsg[5] + "," + oldMsg[6 + totalRoute * 9] + "," + oldMsg[7 + totalRoute * 9] + ","
-                + oldMsg[8 + totalRoute * 9] + "," + oldMsg[9 + totalRoute * 9] + "," + sName +","+ udpPort);
+                + oldMsg[8 + totalRoute * 9] + "," + oldMsg[9 + totalRoute * 9] + "," + udpPort + "," + sName);
         return message.toString();
     }
 
@@ -243,10 +243,10 @@ class Server implements Runnable {
                             // Generate Messages
                             ArrayList<String> msgs = new ArrayList<>();
                             for (int i = 0; i < routeName.size(); i++) {
-                                int thisRouteNo = findNextRoute(0,0,i, true);
+                                int thisRouteNo = findNextRoute(0, 0, i, true);
                                 int thisRouteNo2 = -1;
                                 if (!routeTerminal.get(i))
-                                    thisRouteNo2 = findNextRoute(0,0,i, false);
+                                    thisRouteNo2 = findNextRoute(0, 0, i, false);
                                 // if (thisRouteNo == -1 && thisRouteNo2 == -1)
                                 // continue;
 
@@ -411,7 +411,7 @@ class Server implements Runnable {
                         System.out.println("UDP: Message not for me");
                         continue;
                     }
-                    if (totalTrans>4) {
+                    if (totalTrans > 4) {
                         System.out.println("Drop route more than 5 transfer.");
                         continue;
                     }
@@ -457,7 +457,7 @@ class Server implements Runnable {
                             boolean toTheRecordStation = true;
                             if (routeNext.get(routeNo).equals(data[data.length - 1]))
                                 toTheRecordStation = false;
-                            int nextR = findNextRoute(arriveH,arriveM, routeNo, toTheRecordStation);
+                            int nextR = findNextRoute(arriveH, arriveM, routeNo, toTheRecordStation);
                             if (nextR != -1) {
                                 Route cR = timeTable.get(routeNo).get(nextR);
                                 msgs.add(genForwardMsg(data, cR));
@@ -472,10 +472,10 @@ class Server implements Runnable {
                             for (int i = 0; i < routeName.size(); i++) {
                                 if (i == routeNo)
                                     continue;
-                                int thisRouteNo = findNextRoute(arriveH,arriveM, i, true);
+                                int thisRouteNo = findNextRoute(arriveH, arriveM, i, true);
                                 int thisRouteNo2 = -1;
                                 if (!routeTerminal.get(i))
-                                    thisRouteNo2 = findNextRoute(arriveH,arriveM, i, false);
+                                    thisRouteNo2 = findNextRoute(arriveH, arriveM, i, false);
                                 // if (thisRouteNo == -1 && thisRouteNo2 == -1)
                                 // continue;
 
