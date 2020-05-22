@@ -1,6 +1,8 @@
+# Tommy Chenhao Zhang, 22181467
 import sys
 import threading
 import socket
+import time
 
 sName = sys.argv[1]
 tcpPort = sys.argv[2]
@@ -74,8 +76,10 @@ def parseRequest(request):
 
 
 def findNextRoute(h, m, routeNo, toRecordNextStation):
-    cH = 6
-    cM = 0
+    localTime = time.localtime(time.time())
+    cH = localTime[3]
+    cM = localTime[4]
+    print("Current Time:" + str(cH) +":"+ str(cM))
     if h != 0:
         cH = h
         cM = m
@@ -96,7 +100,8 @@ def findNextRoute(h, m, routeNo, toRecordNextStation):
 
 def genMsg(r, dest):
     msg = "0,"+(str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.destination)+de+dest + \
-        de+(str)(r.fromS)+de+(str)(r.departH)+de+(str)(r.departM)+de+(str)(r.platform)+de+(str)(udpPort)+de+sName
+        de+(str)(r.fromS)+de+(str)(r.departH)+de+(str)(r.departM) + \
+        de+(str)(r.platform)+de+(str)(udpPort)+de+sName
     return msg
 
 
@@ -106,7 +111,8 @@ def genTransMsg(oldMsg, r):
     for i in range(1, len(oldMsg) - 2):
         msg += oldMsg[i] + de
     msg += (str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.destination)+de+oldMsg[5] \
-        + de + sName + de+(str)(r.departH)+de+(str)(r.departM)+de+r.platform+de+(str)(udpPort)+de+sName
+        + de + sName + de+(str)(r.departH)+de+(str)(r.departM) + \
+        de+r.platform+de+(str)(udpPort)+de+sName
     return msg
 
 
@@ -115,10 +121,11 @@ def genForwardMsg(oldMsg, r):
     msg = ''
     for i in range(totalRoute * 9 + 1):
         msg += oldMsg[i] + de
-    msg += (str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.destination)+de+oldMsg[5] \
-        + de + oldMsg[6 + totalRoute * 9] + de+oldMsg[7 + totalRoute * 9]+de + \
+    msg += (str)(r.arriveH)+de+(str)(r.arriveM)+de+(str)(r.name)+de+(str)(r.destination)+de
+    msg += oldMsg[5]+de + oldMsg[6 + totalRoute * 9] + de+oldMsg[7 + totalRoute * 9]+de + \
         oldMsg[8 + totalRoute * 9]+de + \
         oldMsg[9 + totalRoute * 9]+de+(str)(udpPort)+de+sName
+    print("FORWARD MSG:" +msg)
     return msg
 
 
@@ -159,7 +166,8 @@ def runTCP():
                     udpTsocket.bind(("0.0.0.0", 9000))
                     for adj in adjPort:
                         for ms in msg:
-                            udpTsocket.sendto(str.encode(ms), ('localhost', (int)(adj)))
+                            udpTsocket.sendto(str.encode(
+                                ms), ('localhost', (int)(adj)))
                             print("T-UDP: Send "+ms+" to "+adj)
                     timeOut = False
                     finalR = []
@@ -168,12 +176,13 @@ def runTCP():
                         try:
                             data, addr = udpTsocket.recvfrom(1024)
                             finalR.append(bytes.decode(data))
-                            print("T-UDP: Received: "+ finalR[-1])
+                            print("T-UDP: Received: " + finalR[-1])
                         except socket.timeout:
                             timeOut = True
                     if len(finalR) > 0:
                         # print("T-UDP: Received data from destnation")
-                        answer += "<h1>Total Route: " + (str)(len(finalR)) + "</h1>\n"
+                        answer += "<h1>Total Route: " + \
+                            (str)(len(finalR)) + "</h1>\n"
                         tTime = []
                         for i in range(len(finalR)):
                             data = finalR[i].split(de)
@@ -238,6 +247,7 @@ def runUDP():
             msg += udpPort+de+sName
             print("UDP: Reply : " + msg)
             udpsocket.sendto(str.encode(msg), ('localhost', 9000))
+            continue
         else:
             print("UDP: Ready to forward")
             routeNo = -1
@@ -276,7 +286,8 @@ def runUDP():
             if len(msgs) > 0:
                 for adj in adjPort:
                     for ms in msgs:
-                        udpsocket.sendto(str.encode(ms), ('localhost', (int)(adj)))
+                        udpsocket.sendto(str.encode(
+                            ms), ('localhost', (int)(adj)))
                         print("UDP: Send "+ms+" to "+adj)
 
         # udpsocket.sendto('[%s] %s'%(ctime(),data),addr)
